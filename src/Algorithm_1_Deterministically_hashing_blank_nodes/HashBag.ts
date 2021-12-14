@@ -4,7 +4,7 @@ import { hashString } from "./hashingBNs";
  * Page 16f. of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
  * 
  * says 
- * "The function hashBaд(·) computes hashes in a commutative and associative way over its inputs and is used to aggregate the hash across all edges."
+ * "The function hashBag(·) computes hashes in a commutative and associative way over its inputs and is used to aggregate the hash across all edges."
  * 
  * Problem: commutative and associative calculation of hashes cannot be achieved in by iterative calculation of hashes => accumulator is needed
  * 
