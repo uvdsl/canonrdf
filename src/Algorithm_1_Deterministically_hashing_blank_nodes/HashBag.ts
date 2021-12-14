@@ -18,14 +18,14 @@ export default class HashBag {
      * @param hashes previously calculated hashes if any.
      */
     constructor(hashes: Array<string>) {
-        this._hashes = hashes
+        this._hashes = hashes;
     }
     /**
      * Add a new hash value to be accumulated
      * @param hash the hash to be accumulated
      */
     add(hash: string) {
-        this._hashes.push(hash)
+        this._hashes.push(hash);
     }
     /**
      * The value of the hashbag (commutative and associative)
@@ -33,7 +33,7 @@ export default class HashBag {
      */
     value() {
         // sorting takes care of commutative and associative property
-       return hashString(this._hashes.sort().join())
+       return hashString(this._hashes.sort().join());
     }
 
 }
