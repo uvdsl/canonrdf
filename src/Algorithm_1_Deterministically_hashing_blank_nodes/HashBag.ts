@@ -1,7 +1,5 @@
 import { hashString } from "./hashingBNs";
 
-
-
 /**
  * Page 16f. of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
  * 

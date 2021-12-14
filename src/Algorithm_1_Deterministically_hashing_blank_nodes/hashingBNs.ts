@@ -1,4 +1,4 @@
-import { Quad, Term, Store, Util as n3Util } from 'n3';
+import { Term, Store, Util as n3Util } from 'n3';
 import { createHash } from 'crypto';
 import HashBag from './HashBag';
 
@@ -94,8 +94,6 @@ export const hashBNodes = (G: Store) => {
     return B_ids_to_hashes;
 }
 
-
-
 /**
  * Simply hashes some string s
  * (aka produces a color)
@@ -122,7 +120,6 @@ export const hashString = (s: string) => {
 const hashTuple = (s_o_hash: string, p_hash: string, is_edge_out: boolean) => {
     return hashString(`${s_o_hash}${p_hash}${is_edge_out}`);
 }
-
 
 // <p3>
 /**

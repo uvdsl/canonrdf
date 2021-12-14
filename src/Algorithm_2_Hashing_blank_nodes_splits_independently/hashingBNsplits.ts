@@ -1,6 +1,5 @@
-import { Quad, Store } from "n3";
+import { Store } from "n3";
 import { hashBNodes } from "..";
-
 
 /**
  * Page 19f. https://aidanhogan.com/docs/rdf-canonicalisation.pdf
@@ -26,7 +25,6 @@ export const hashBNodesPerSplit = (G: Store) => {
     return B_ids_to_hashes;
 }
 
-
 /**
  * 
  * @param G n3.Store, the graph
@@ -37,12 +35,12 @@ const split = (G: Store) => {
     // TODO real UNION-FIND
     // for now just simply:
     // a array of split graphs
-    const graphs: Array<Store> = []; 
+    const graphs: Array<Store> = [];
     // now get individual nodes
     const quads = G.getQuads(null, null, null, null); // TODO adjust for datasets : blank nodes are scoped within the graph... ?
-    const id_to_split: { [key: string]: number } = {}
+    const id_to_split: { [key: string]: number } = {};
     new Set(quads.map(quad => [quad.subject, quad.object]).flat()).forEach(term => {
-        id_to_split[term.id] = -1
+        id_to_split[term.id] = -1;
     });
     // then check for every edge which split it belongs to
     for (const quad of quads) {
@@ -55,14 +53,14 @@ const split = (G: Store) => {
         }
         if (id_to_split[quad.subject.id] != -1 && id_to_split[quad.object.id] == -1) {
             // subject connected to something
-            id_to_split[quad.object.id] = id_to_split[quad.subject.id]
-            graphs[id_to_split[quad.subject.id]].addQuad(quad)
+            id_to_split[quad.object.id] = id_to_split[quad.subject.id];
+            graphs[id_to_split[quad.subject.id]].addQuad(quad);
             continue
         }
         if (id_to_split[quad.subject.id] == -1 && id_to_split[quad.object.id] != -1) {
             // object connected to something
-            id_to_split[quad.subject.id] = id_to_split[quad.object.id]
-            graphs[id_to_split[quad.object.id]].addQuad(quad)
+            id_to_split[quad.subject.id] = id_to_split[quad.object.id];
+            graphs[id_to_split[quad.object.id]].addQuad(quad);
             continue
         }
         // if (id_to_split[quad.subject.id] != -1 && id_to_split[quad.object.id] != -1) {
@@ -80,7 +78,7 @@ const split = (G: Store) => {
         });
         graphs[id_to_split[quad.subject.id]].addQuads(tmp_quads);
         // remove object graph from list
-        graphs.splice(id_to_split[quad.subject.id], 1)
+        graphs.splice(id_to_split[quad.subject.id], 1);
         // continue
         // }
     }
