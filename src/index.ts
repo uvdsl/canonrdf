@@ -1,1 +1,2 @@
 export { hashBNodes } from './Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs';
+export { hashBNodesPerSplit } from './Algorithm_2_Hashing_blank_nodes_splits_independently/hashingBNsplits';
