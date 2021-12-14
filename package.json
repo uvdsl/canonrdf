@@ -1,0 +1,33 @@
+{
+  "name": "canonrdf",
+  "version": "0.0.1",
+  "description": "This library provides methods for canonicalising RDF.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uvdsl/canonrdf.git"
+  },
+  "keywords": [
+    "RDF"
+  ],
+  "author": "uvdsl",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/uvdsl/canonrdf/issues"
+  },
+  "homepage": "https://github.com/uvdsl/canonrdf#readme",
+  "dependencies": {
+    "crypto": "^1.0.1",
+    "n3": "^1.12.2"
+  },
+  "devDependencies": {
+    "@types/n3": "^1.10.4"
+  }
+}

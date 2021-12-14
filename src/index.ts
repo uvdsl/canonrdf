@@ -1,0 +1,1 @@
+export { hashBNodes } from './Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs';
