@@ -76,13 +76,13 @@ export const hashBNodes = (G: Store) => {
                 const p_hash = IL_ids_to_hashes[quad.predicate.id]
                 const c = hashTuple(s_hash, p_hash, EDGE_IN);
                 // B_ids_to_hashes[b.id] = hashBag(c, B_ids_to_hashes[b.id]); // (footnote 1)
-                B_HashBags[b.id].add(c) // (footnote 1)
+                B_HashBags[b.id].add(c); // (footnote 1)
             })
 
             // (footnote 1) 
             // in order to create a commutative and associative hash, we need an accumulator `HashBag` for each blanknode
             // (it is not possible to calculate a hash in such way in an iterative manner as it may appear from the listing in the paper)
-            B_ids_to_hashes[b.id] = B_HashBags[b.id].value()
+            B_ids_to_hashes[b.id] = B_HashBags[b.id].value();
         })
         // </p2>
         // <p3>
@@ -102,7 +102,7 @@ export const hashBNodes = (G: Store) => {
  * @returns hash of s as hex string
  */
 export const hashString = (s: string) => {
-    return createHash(HASH_ALGO).update(s).digest('hex')
+    return createHash(HASH_ALGO).update(s).digest('hex');
     // `${hash.digest('hex')} ${filename}`;
 }
 
