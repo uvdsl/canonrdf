@@ -30,7 +30,9 @@ over its inputs and is used to aggregate the hash across all edges.
 Lines in <p3>: The computed hashes form a partition of blank nodes. The hash of each blank node
 changes in every iteration. The loop terminates when either (i) the hash-based partition of
 terms does not change in an iteration, or (ii) no two terms share a hash.
-
+ 
+ * @param G n3.Store, the graph
+ * @returns an Object `B_ids_to_hashes: { [key: string]: string }`
 */
 export const hashBNodes = (G: Store) => {
     // <p1>
