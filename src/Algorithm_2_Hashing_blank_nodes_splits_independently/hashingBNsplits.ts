@@ -26,6 +26,7 @@ export const hashBNodesPerSplit = (G: Store) => {
 }
 
 /**
+ * TODO I think this is not correct. Should be a blank node split.
  * 
  * @param G n3.Store, the graph
  * @returns The blank node split of G contains a set of non-overlapping subgraphs of G, where each subgraph
