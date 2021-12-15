@@ -34,12 +34,12 @@ export const hashBNodesPerSplit = (G: Store) => {
  */
 const split = (G: Store) => {
     // TODO real UNION-FIND
-    // for now just simply (and for the sake of readability not compressed)
+    // for now just simply (and for the sake of readability not squashed)
     // a array of split graphs
     const graphs: Array<Store> = [];
     // now get individual bnodes
     const quads = G.getQuads(null, null, null, null); // TODO adjust for datasets : blank nodes are scoped within the graph... ?
-    const id_to_split: { [key: string]: number } = {};
+    const id_to_split: { [key: string]: number } = {}; // {B.id : index of graph in graphs array}
     quads.forEach(quad => {
         const s_is_bn = n3Util.isBlankNode(quad.subject);
         const o_is_bn = n3Util.isBlankNode(quad.object);
