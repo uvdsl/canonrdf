@@ -1,4 +1,4 @@
-import { Store } from "n3";
+import { Store,  Util as n3Util  } from "n3";
 import { hashBNodes } from "..";
 
 /**
@@ -26,7 +26,7 @@ export const hashBNodesPerSplit = (G: Store) => {
 }
 
 /**
- * TODO I think this is not correct. Should be a blank node split.
+ * TODO check correctness.
  * 
  * @param G n3.Store, the graph
  * @returns The blank node split of G contains a set of non-overlapping subgraphs of G, where each subgraph
@@ -34,42 +34,72 @@ export const hashBNodesPerSplit = (G: Store) => {
  */
 const split = (G: Store) => {
     // TODO real UNION-FIND
-    // for now just simply:
+    // for now just simply (and for the sake of readability not compressed)
     // a array of split graphs
     const graphs: Array<Store> = [];
-    // now get individual nodes
+    // now get individual bnodes
     const quads = G.getQuads(null, null, null, null); // TODO adjust for datasets : blank nodes are scoped within the graph... ?
     const id_to_split: { [key: string]: number } = {};
-    new Set(quads.map(quad => [quad.subject, quad.object]).flat()).forEach(term => {
-        id_to_split[term.id] = -1;
-    });
-    // then check for every edge which split it belongs to
-    for (const quad of quads) {
+    quads.forEach(quad => {
+        const s_is_bn = n3Util.isBlankNode(quad.subject);
+        const o_is_bn = n3Util.isBlankNode(quad.object);
+
+        if (!s_is_bn && !o_is_bn) {
+            // none is blank node => do nothing.
+            return
+        }
+
+        if (s_is_bn && !o_is_bn) {
+            // subject is blank node, object is not
+            if(id_to_split[quad.subject.id] == -1 ) {
+                // yet unseen blank node
+                id_to_split[quad.subject.id] = graphs.length;
+                graphs[graphs.length] = new Store([quad]);
+            }
+            graphs[id_to_split[quad.subject.id]].addQuad(quad);
+            return
+        }
+
+
+        if (!s_is_bn && o_is_bn) {
+            //object is blank node, subject is not
+            if (id_to_split[quad.object.id] == -1) {
+                // yet unseen blank node
+                id_to_split[quad.object.id] = graphs.length;
+                graphs[graphs.length] = new Store([quad]);
+            }
+            graphs[id_to_split[quad.object.id]].addQuad(quad);
+            return
+        }
+
+        //  if (s_is_bn && o_is_bn) {
+        // both are blank nodes
+       
         if (id_to_split[quad.subject.id] == -1 && id_to_split[quad.object.id] == -1) {
-            // edge not connected to anything
+            // yet unseen blank nodes
             id_to_split[quad.subject.id] = graphs.length;
             id_to_split[quad.object.id] = graphs.length;
             graphs[graphs.length] = new Store([quad]);
-            continue
+            return
         }
         if (id_to_split[quad.subject.id] != -1 && id_to_split[quad.object.id] == -1) {
-            // subject connected to something
+            // have seen subject before (i.e. is connected to something)
             id_to_split[quad.object.id] = id_to_split[quad.subject.id];
             graphs[id_to_split[quad.subject.id]].addQuad(quad);
-            continue
+            return
         }
         if (id_to_split[quad.subject.id] == -1 && id_to_split[quad.object.id] != -1) {
-            // object connected to something
+             // have seen object before (i.e. is connected to something)
             id_to_split[quad.subject.id] = id_to_split[quad.object.id];
             graphs[id_to_split[quad.object.id]].addQuad(quad);
-            continue
+            return
         }
         // if (id_to_split[quad.subject.id] != -1 && id_to_split[quad.object.id] != -1) {
-        // both connected to something
+        // both seen before (both connected to something)
         graphs[id_to_split[quad.subject.id]].addQuad(quad) // for simplicity: just add to subject split
         if (id_to_split[quad.subject.id] === id_to_split[quad.object.id]) {
             // if both nodes were in the same split => double edge
-            continue
+            return
         }
         // nodes were in different splits
         // merge the graph of object into the subject graph
@@ -80,8 +110,9 @@ const split = (G: Store) => {
         graphs[id_to_split[quad.subject.id]].addQuads(tmp_quads);
         // remove object graph from list
         graphs.splice(id_to_split[quad.subject.id], 1);
-        // continue
+        // return
         // }
-    }
+    });
+
     return graphs;
 }
