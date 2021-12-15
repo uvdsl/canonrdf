@@ -49,8 +49,8 @@ export const hashBNodes = (G: Store) => {
     });
     uniq_terms = undefined; // throw away terms set
     // a map from terms to hashes // TODO split between B and IL
-    const IL_ids_to_hashes: { [key: string]: string } = {}; // { IL.id : hashvalue} aka a `hash partition`
-    const B_ids_to_hashes: { [key: string]: string } = {}; // { B.id : hashvalue} aka a `hash partition`
+    const IL_ids_to_hashes: { [key: string]: string } = {}; // { IL.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse
+    const B_ids_to_hashes: { [key: string]: string } = {}; // { B.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse
     const B_HashBags: { [key: string]: HashBag } = {}; // {B.id : HashBag Obj}
     Object.values(IL).forEach(il => IL_ids_to_hashes[il.id] = hashString(il.id)); // static hash based on the string of the term
     Object.values(B).forEach(b => { B_ids_to_hashes[b.id] = "0"; B_HashBags[b.id] = new HashBag(["0"]); }); // initial hash
