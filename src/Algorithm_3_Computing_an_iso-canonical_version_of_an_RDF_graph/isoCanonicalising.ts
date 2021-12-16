@@ -50,7 +50,26 @@ const relabel = (G: Store, b_id_to_hash: {[key:string]:string}) => {
 }
 
 
+/**
+ * 
+ * The algorithm first orders the partition and then selects the lowest non-trivial part.
+For each blank node in this part, the algorithm first marks the blank node with a new hash
+and then calls Algorithm 1 initialised with the intermediate hashes. Based on the results of
+this call, a new partition is computed and ordered.
 
+f the new partition is fine, then the algorithm labels the blank nodes in G according
+to the hashes, and checks to see if the resulting graph is lower than the lowest that has been
+found before; if so, it is set as the lowest.
+
+If the new partition is not fine, blank nodes in the lowest non-trivial part will be distin-
+guished recursively.
+ * 
+ * @param G 
+ * @param b_id_to_hash 
+ * @param hashPartition 
+ * @param G_lowest 
+ * @returns 
+ */
 const distinguish = (G: Store, b_id_to_hash: {[key:string]:string}, hashPartition: OrderedHashPartition, G_lowest: Store=undefined) => {
     // hashPartition is already ordered.
     const lowestNonTrivialPart = hashPartition.getLowestNonTrivial()
@@ -61,7 +80,7 @@ const distinguish = (G: Store, b_id_to_hash: {[key:string]:string}, hashPartitio
         const hashPartition_tick = new OrderedHashPartition(b_id_to_hash_double_tick)
         if (hashPartition_tick.isFine()) {
             const G_c = relabel(G, b_id_to_hash_double_tick)
-            if (G_lowest ===undefined || getOrder(G_c) < getOrder(G_lowest)) {
+            if (G_lowest ===undefined || compareOrder(G_c, G_lowest)) {
                 G_lowest = G_c
             } else {
                 G_lowest = distinguish(G, b_id_to_hash_double_tick, hashPartition_tick, G_lowest)
@@ -72,8 +91,12 @@ const distinguish = (G: Store, b_id_to_hash: {[key:string]:string}, hashPartitio
 }
 
 
-
-const getOrder = (G:Store) => {
+/**
+ *  
+ * @param G 
+ * @returns 
+ */
+const compareOrder = (G:Store, H:Store) => {
     // TODO what is the meaning of "lowest graph" what is the order thing?
-    return G.size // maybe? fore easy?
+    return G.size < H.size // maybe? fore easy?
 }
