@@ -49,11 +49,11 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes: { [key: string]
     });
     uniq_terms = undefined; // throw away terms set
     // a map from terms to hashes // TODO split between B and IL
-    const il_id_to_hash: { [key: string]: string } = {}; // { IL.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse
+    const il_id_to_hash: { [key: string]: string } = {}; // { IL.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse, or not idk, it's something
     Object.values(IL).forEach(il => il_id_to_hash[il.id] = hashString(il.id)); // static hash based on the string of the term
 
     // START allow for init of blank node hashes as necessary for algo 3
-    let b_id_to_hash: { [key: string]: string } = {}; // { B.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse
+    let b_id_to_hash: { [key: string]: string } = {}; // { B.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse, or not idk, it's something
     const B_HashBags: { [key: string]: HashBag } = {}; // {B.id : HashBag Obj}
     if (initialisedBlankNodeHashes === undefined) {
         Object.values(B).forEach(b => { b_id_to_hash[b.id] = "0"; B_HashBags[b.id] = new HashBag(["0"]); }); // initial hash
@@ -99,7 +99,7 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes: { [key: string]
         // </p2>
         // <p3>
         // until (∀x , y : hash_i [x] = hash_i [y] iff hash_{i−1}[x ] = hash_{i−1}[y]) or (∀x , y : hash_i [x ] = hash_i [y] iff x = y)
-    } while (isStableHashPartition(b_id_to_hash, B_ids_to_hashes_prev));
+    } while (isStable(b_id_to_hash, B_ids_to_hashes_prev));
     // </p3>
     return b_id_to_hash;
 }
@@ -142,7 +142,7 @@ export const hashTuple = (...data: string[]) => {
  * (i)  x and y should only be hashEqual if x and y were hashEqual in prev iteration otherwise return false
  * (ii) x and y should only be hashEqual if x == y otherwise return false
  */
-const isStableHashPartition = (p: { [key: string]: string }, p_prev: { [key: string]: string }) => {
+const isStable = (p: { [key: string]: string }, p_prev: { [key: string]: string }) => {
     for (const x of Object.keys(p)) {
         for (const y of Object.keys(p)) {
             // // (i) the hash-based partition of terms does not change in an iteration
