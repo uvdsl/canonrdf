@@ -1,4 +1,4 @@
-import { Store } from "n3";
+import { BlankNode, Quad, Store, Util as n3Util } from "n3";
 import { hashBNodes } from "..";
 
 
@@ -21,13 +21,16 @@ export const isoCanonicalise = (G: Store) => {
     // {b.id: hex}
     const B_ids_to_hashes = hashBNodes(G) // or hashBNodesPerSplit(G)
     // convert to actual partition: compute hash partition P of bnodes(G) w.r.t. hash
-    const hash_to_B_ids = {}// a so-called partition P
+    const hash_to_B_ids: { [key: string]: string[] } = {}// a so-called partition P
+    const ordering: Array<string> = [] // of P, i.e. ordering of hashes where smaller index corresponds to small |B|, // initially unordered
     Object.entries(B_ids_to_hashes).forEach(([k, v]) => {
         if (hash_to_B_ids[v] === undefined) {
             hash_to_B_ids[v] = []
+            ordering.push(v)
         }
         hash_to_B_ids[v].push(k)
     })
+
     // </p1>
     // <p2>
     /*
@@ -41,10 +44,29 @@ export const isoCanonicalise = (G: Store) => {
     // hence
     if (Object.keys(B_ids_to_hashes).length === Object.keys(hash_to_B_ids).length) {
         // we are done: generate blank node labels from hash
-        // TODO
-        return
+        return relabel(G, B_ids_to_hashes);
     }
     // </p2>
     // distinguish
     // TODO
 }
+
+
+/**
+ * Relabels the blank nodes of G according to the input mapping.
+ * @param G n3.Store, the graph
+ * @param B_id_to_hashes mapping from BlankNode id to its hash
+ * @returns relabeld graph
+ */
+const relabel = (G: Store, B_id_to_hashes: { [key: string]: string }) => {
+    return new Store(G.getQuads(null,null,null,null).map(quad => {
+        const s = (n3Util.isBlankNode(quad.subject)) ? new BlankNode(B_id_to_hashes[quad.subject.id]) : quad.subject;
+        const p = quad.predicate
+        const o = (n3Util.isBlankNode(quad.object)) ? new BlankNode(B_id_to_hashes[quad.object.id]) : quad.object;
+        const g = quad.graph
+        return new Quad(s, p, o, g)
+    }))
+}
+
+
+
