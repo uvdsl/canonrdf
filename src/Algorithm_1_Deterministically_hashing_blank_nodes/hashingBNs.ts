@@ -3,8 +3,8 @@ import { createHash } from 'crypto';
 import HashBag from './HashBag';
 
 const HASH_ALGO = 'md5' // TODO to be determined
-const EDGE_OUT = true; // TODO to be determined
-const EDGE_IN = false; // TODO to be determined
+const EDGE_OUT = '+'; // TODO to be determined
+const EDGE_IN = '-'; // TODO to be determined
 
 /**
 Page 16f. of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
@@ -34,7 +34,7 @@ terms does not change in an iteration, or (ii) no two terms share a hash.
  * @param G n3.Store, the graph
  * @returns an Object `B_ids_to_hashes: { [key: string]: string }`
 */
-export const hashBNodes = (G: Store) => {
+export const hashBNodes = (G: Store, initialisedBlankNodeHashes: { [key: string]: string } = undefined) => {
     // <p1>
     // a map from term to id
     let IL: { [key: string]: Term }; // the set of IRIs and Literals { IL.id : term}
@@ -49,23 +49,33 @@ export const hashBNodes = (G: Store) => {
     });
     uniq_terms = undefined; // throw away terms set
     // a map from terms to hashes // TODO split between B and IL
-    const IL_ids_to_hashes: { [key: string]: string } = {}; // { IL.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse
-    const B_ids_to_hashes: { [key: string]: string } = {}; // { B.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse
+    const il_id_to_hash: { [key: string]: string } = {}; // { IL.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse
+    Object.values(IL).forEach(il => il_id_to_hash[il.id] = hashString(il.id)); // static hash based on the string of the term
+
+    // START allow for init of blank node hashes as necessary for algo 3
+    let b_id_to_hash: { [key: string]: string } = {}; // { B.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse
     const B_HashBags: { [key: string]: HashBag } = {}; // {B.id : HashBag Obj}
-    Object.values(IL).forEach(il => IL_ids_to_hashes[il.id] = hashString(il.id)); // static hash based on the string of the term
-    Object.values(B).forEach(b => { B_ids_to_hashes[b.id] = "0"; B_HashBags[b.id] = new HashBag(["0"]); }); // initial hash
+    if (initialisedBlankNodeHashes === undefined) {
+        Object.values(B).forEach(b => { b_id_to_hash[b.id] = "0"; B_HashBags[b.id] = new HashBag(["0"]); }); // initial hash
+    } else {
+        b_id_to_hash = initialisedBlankNodeHashes;
+        // TODO Question: are hashbags getting reused as well?
+        Object.values(B).forEach(b => B_HashBags[b.id] = new HashBag([b_id_to_hash[b.id]])); // initial hash
+    }
+    //END allow for init of blank node hashes as necessary for algo 3
+
     // </p1>
     // <p2>
     // let i = 0
     let B_ids_to_hashes_prev: { [key: string]: string }; // { term.id : hashvalue} aka a `hash partition` of the previous iteration
     do {
         // i++;
-        B_ids_to_hashes_prev = B_ids_to_hashes;
+        B_ids_to_hashes_prev = b_id_to_hash;
         // for (b, p, o) ∈ G : b ∈ B do
         Object.values(B).forEach(b => {
             G.getQuads(b, null, null, null).sort().forEach(quad => { // TODO adjust for datasets : blank nodes are scoped within the graph...
-                const o_hash = (n3Util.isBlankNode(quad.object)) ? B_ids_to_hashes_prev[quad.object.id] : IL_ids_to_hashes[quad.object.id]
-                const p_hash = IL_ids_to_hashes[quad.predicate.id]
+                const o_hash = (n3Util.isBlankNode(quad.object)) ? B_ids_to_hashes_prev[quad.object.id] : il_id_to_hash[quad.object.id]
+                const p_hash = il_id_to_hash[quad.predicate.id]
                 const c = hashTuple(o_hash, p_hash, EDGE_OUT);
                 // B_ids_to_hashes[b.id] = hashBag(c, B_ids_to_hashes[b.id]); // (footnote 1)
                 B_HashBags[b.id].add(c); // (footnote 1)
@@ -74,8 +84,8 @@ export const hashBNodes = (G: Store) => {
             // for (s, p, b) ∈ G : b ∈ B do
             // Object.values(B).forEach(b => {
             G.getQuads(null, null, b, null).sort().forEach(quad => { // TODO adjust for datasets : blank nodes are scoped within the graph...
-                const s_hash = (n3Util.isBlankNode(quad.subject)) ? B_ids_to_hashes_prev[quad.subject.id] : IL_ids_to_hashes[quad.subject.id]
-                const p_hash = IL_ids_to_hashes[quad.predicate.id]
+                const s_hash = (n3Util.isBlankNode(quad.subject)) ? B_ids_to_hashes_prev[quad.subject.id] : il_id_to_hash[quad.subject.id]
+                const p_hash = il_id_to_hash[quad.predicate.id]
                 const c = hashTuple(s_hash, p_hash, EDGE_IN);
                 // B_ids_to_hashes[b.id] = hashBag(c, B_ids_to_hashes[b.id]); // (footnote 1)
                 B_HashBags[b.id].add(c); // (footnote 1)
@@ -84,14 +94,14 @@ export const hashBNodes = (G: Store) => {
             // (footnote 1) 
             // in order to create a commutative and associative hash, we need an accumulator `HashBag` for each blanknode
             // (it is not possible to calculate a hash in such way in an iterative manner as it may appear from the listing in the paper)
-            B_ids_to_hashes[b.id] = B_HashBags[b.id].value();
+            b_id_to_hash[b.id] = B_HashBags[b.id].value();
         })
         // </p2>
         // <p3>
         // until (∀x , y : hash_i [x] = hash_i [y] iff hash_{i−1}[x ] = hash_{i−1}[y]) or (∀x , y : hash_i [x ] = hash_i [y] iff x = y)
-    } while (isStableHashPartition(B_ids_to_hashes, B_ids_to_hashes_prev));
+    } while (isStableHashPartition(b_id_to_hash, B_ids_to_hashes_prev));
     // </p3>
-    return B_ids_to_hashes;
+    return b_id_to_hash;
 }
 
 /**
@@ -117,8 +127,8 @@ export const hashString = (s: string) => {
  * @param p_hash the hash of the predicate of the triple the blank node is in
  * @param is_edge_out the edge direction flag
  */
-const hashTuple = (s_o_hash: string, p_hash: string, is_edge_out: boolean) => {
-    return hashString(`${s_o_hash}${p_hash}${is_edge_out}`);
+export const hashTuple = (...data: string[]) => {
+    return hashString(data.join());
 }
 
 // <p3>

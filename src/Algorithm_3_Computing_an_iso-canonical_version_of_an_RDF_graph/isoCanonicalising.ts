@@ -1,7 +1,7 @@
 import { BlankNode, Quad, Store, Util as n3Util } from "n3";
 import { hashBNodes } from "..";
-
-
+import { hashTuple } from "../Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs";
+import OrderedHashPartition from "./OrderedHashPartition";
 
 /**
 Page 22 of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
@@ -19,36 +19,17 @@ initial hashes and return the result as the iso-canonical version.
 export const isoCanonicalise = (G: Store) => {
     // <p1>
     // {b.id: hex}
-    const B_ids_to_hashes = hashBNodes(G) // or hashBNodesPerSplit(G)
-    // convert to actual partition: compute hash partition P of bnodes(G) w.r.t. hash
-    const hash_to_B_ids: { [key: string]: string[] } = {}// a so-called partition P
-    const ordering: Array<string> = [] // of P, i.e. ordering of hashes where smaller index corresponds to small |B|, // initially unordered
-    Object.entries(B_ids_to_hashes).forEach(([k, v]) => {
-        if (hash_to_B_ids[v] === undefined) {
-            hash_to_B_ids[v] = []
-            ordering.push(v)
-        }
-        hash_to_B_ids[v].push(k)
-    })
-
+    const b_id_to_hash = hashBNodes(G) // or hashBNodesPerSplit(G)
+    const hashPartition = new OrderedHashPartition(b_id_to_hash)
     // </p1>
     // <p2>
-    /*
-    We call B′ ∈ P a part of P.
-    We call a part B′ trivial if |B′| = 1; otherwise we call it non-trivial. We call a partition P fine if it has
-    only trivial parts, coarse if it has only one part, and intermediate if it is neither coarse nor fine.
-    */
-    // if P is fine then // fine if all parts of P are trivial
-    // this must be the case if B_ids_to_hashes and hash_to_B_ids have the same length.
-    // B_ids_to_hashes has size of all blank nodes,i.e. |B|, where as hash_to_B_ids (to be fine) must have |B| entries with array length of 1.
-    // hence
-    if (Object.keys(B_ids_to_hashes).length === Object.keys(hash_to_B_ids).length) {
-        // we are done: generate blank node labels from hash
-        return relabel(G, B_ids_to_hashes);
+    if (hashPartition.isFine()) {
+      // we are done: generate blank node labels from hash
+      return relabel(G, b_id_to_hash);
     }
     // </p2>
     // distinguish
-    // TODO
+    return distinguish(G, b_id_to_hash, hashPartition);
 }
 
 
@@ -58,11 +39,11 @@ export const isoCanonicalise = (G: Store) => {
  * @param B_id_to_hashes mapping from BlankNode id to its hash
  * @returns relabeld graph
  */
-const relabel = (G: Store, B_id_to_hashes: { [key: string]: string }) => {
-    return new Store(G.getQuads(null,null,null,null).map(quad => {
-        const s = (n3Util.isBlankNode(quad.subject)) ? new BlankNode(B_id_to_hashes[quad.subject.id]) : quad.subject;
+const relabel = (G: Store, b_id_to_hash: {[key:string]:string}) => {
+    return new Store(G.getQuads(null, null, null, null).map(quad => {
+        const s = (n3Util.isBlankNode(quad.subject)) ? new BlankNode(b_id_to_hash[quad.subject.id]) : quad.subject;
         const p = quad.predicate
-        const o = (n3Util.isBlankNode(quad.object)) ? new BlankNode(B_id_to_hashes[quad.object.id]) : quad.object;
+        const o = (n3Util.isBlankNode(quad.object)) ? new BlankNode(b_id_to_hash[quad.object.id]) : quad.object;
         const g = quad.graph
         return new Quad(s, p, o, g)
     }))
@@ -70,3 +51,29 @@ const relabel = (G: Store, B_id_to_hashes: { [key: string]: string }) => {
 
 
 
+const distinguish = (G: Store, b_id_to_hash: {[key:string]:string}, hashPartition: OrderedHashPartition, G_lowest: Store=undefined) => {
+    // hashPartition is already ordered.
+    const lowestNonTrivialPart = hashPartition.getLowestNonTrivial()
+    for (const b_id of lowestNonTrivialPart) {
+        const b_id_to_hash_tick = Object.assign({},b_id_to_hash)
+        b_id_to_hash_tick[b_id] = hashTuple(b_id_to_hash_tick[b_id],'@')
+        const b_id_to_hash_double_tick = hashBNodes(G, b_id_to_hash_tick) // or hashBNodesPerSplit(G) // TODO allow for initialisation of hash values
+        const hashPartition_tick = new OrderedHashPartition(b_id_to_hash_double_tick)
+        if (hashPartition_tick.isFine()) {
+            const G_c = relabel(G, b_id_to_hash_double_tick)
+            if (G_lowest ===undefined || getOrder(G_c) < getOrder(G_lowest)) {
+                G_lowest = G_c
+            } else {
+                G_lowest = distinguish(G, b_id_to_hash_double_tick, hashPartition_tick, G_lowest)
+            }
+        }
+    }
+    return G_lowest
+}
+
+
+
+const getOrder = (G:Store) => {
+    // TODO what is the meaning of "lowest graph" what is the order thing?
+    return G.size // maybe? fore easy?
+}
