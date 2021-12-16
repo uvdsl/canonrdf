@@ -54,7 +54,7 @@ const split = (G: Store) => {
             if(id_to_split[quad.subject.id] == -1 ) {
                 // yet unseen blank node
                 id_to_split[quad.subject.id] = graphs.length;
-                graphs[graphs.length] = new Store([quad]);
+                graphs.push(new Store([quad]));
             }
             graphs[id_to_split[quad.subject.id]].addQuad(quad);
             return
@@ -66,7 +66,7 @@ const split = (G: Store) => {
             if (id_to_split[quad.object.id] == -1) {
                 // yet unseen blank node
                 id_to_split[quad.object.id] = graphs.length;
-                graphs[graphs.length] = new Store([quad]);
+                graphs.push(new Store([quad]));
             }
             graphs[id_to_split[quad.object.id]].addQuad(quad);
             return
@@ -79,7 +79,7 @@ const split = (G: Store) => {
             // yet unseen blank nodes
             id_to_split[quad.subject.id] = graphs.length;
             id_to_split[quad.object.id] = graphs.length;
-            graphs[graphs.length] = new Store([quad]);
+            graphs.push(new Store([quad]));
             return
         }
         if (id_to_split[quad.subject.id] != -1 && id_to_split[quad.object.id] == -1) {
