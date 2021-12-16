@@ -3,6 +3,8 @@ import { hashBNodes } from "..";
 import { hashTuple } from "../Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs";
 import OrderedHashPartition from "./OrderedHashPartition";
 
+const MARKER = '@';
+
 /**
 Page 22 of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
 // TODO adjust for datasets : blank nodes are scoped within the graph...
@@ -75,7 +77,7 @@ const distinguish = (G: Store, b_id_to_hash: { [key: string]: string }, hashPart
     const lowestNonTrivialPart = hashPartition.getLowestNonTrivial()
     for (const b_id of lowestNonTrivialPart) {
         const b_id_to_hash_tick = Object.assign({}, b_id_to_hash)
-        b_id_to_hash_tick[b_id] = hashTuple(b_id_to_hash_tick[b_id], '@')
+        b_id_to_hash_tick[b_id] = hashTuple(b_id_to_hash_tick[b_id], MARKER)
         const b_id_to_hash_double_tick = hashBNodes(G, b_id_to_hash_tick) // or hashBNodesPerSplit(G) // TODO allow for initialisation of hash values
         const hashPartition_tick = new OrderedHashPartition(b_id_to_hash_double_tick)
         if (hashPartition_tick.isFine()) {

@@ -155,7 +155,7 @@ const isStableHashPartition = (p: { [key: string]: string }, p_prev: { [key: str
             //     // ∀x,y: hash_i [x] = hash_i [y] iff x = y)
             //     // i.e. x and y should only be hashEqual if x == y otherwise return false
             //     (p[x] === p[y] && x !== y)) return false;
-            if ((p[x] === p[y] && (p_prev[x] !== p_prev[y]) || x !== y)) return false;
+            if ((p[x] === p[y] && (p_prev[x] !== p_prev[y]) || x !== y)) return false; // TODO proper hash compare
         }
     }
     return true
