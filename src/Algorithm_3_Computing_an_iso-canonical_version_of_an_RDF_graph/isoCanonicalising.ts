@@ -24,8 +24,8 @@ export const isoCanonicalise = (G: Store) => {
     // </p1>
     // <p2>
     if (hashPartition.isFine()) {
-      // we are done: generate blank node labels from hash
-      return relabel(G, b_id_to_hash);
+        // we are done: generate blank node labels from hash
+        return relabel(G, b_id_to_hash);
     }
     // </p2>
     // distinguish
@@ -39,7 +39,7 @@ export const isoCanonicalise = (G: Store) => {
  * @param B_id_to_hashes mapping from BlankNode id to its hash
  * @returns relabeld graph
  */
-const relabel = (G: Store, b_id_to_hash: {[key:string]:string}) => {
+const relabel = (G: Store, b_id_to_hash: { [key: string]: string }) => {
     return new Store(G.getQuads(null, null, null, null).map(quad => {
         const s = (n3Util.isBlankNode(quad.subject)) ? new BlankNode(b_id_to_hash[quad.subject.id]) : quad.subject;
         const p = quad.predicate
@@ -70,17 +70,17 @@ guished recursively.
  * @param G_lowest 
  * @returns 
  */
-const distinguish = (G: Store, b_id_to_hash: {[key:string]:string}, hashPartition: OrderedHashPartition, G_lowest: Store=undefined) => {
+const distinguish = (G: Store, b_id_to_hash: { [key: string]: string }, hashPartition: OrderedHashPartition, G_lowest: Store = undefined) => {
     // hashPartition is already ordered.
     const lowestNonTrivialPart = hashPartition.getLowestNonTrivial()
     for (const b_id of lowestNonTrivialPart) {
-        const b_id_to_hash_tick = Object.assign({},b_id_to_hash)
-        b_id_to_hash_tick[b_id] = hashTuple(b_id_to_hash_tick[b_id],'@')
+        const b_id_to_hash_tick = Object.assign({}, b_id_to_hash)
+        b_id_to_hash_tick[b_id] = hashTuple(b_id_to_hash_tick[b_id], '@')
         const b_id_to_hash_double_tick = hashBNodes(G, b_id_to_hash_tick) // or hashBNodesPerSplit(G) // TODO allow for initialisation of hash values
         const hashPartition_tick = new OrderedHashPartition(b_id_to_hash_double_tick)
         if (hashPartition_tick.isFine()) {
             const G_c = relabel(G, b_id_to_hash_double_tick)
-            if (G_lowest ===undefined || compareOrder(G_c, G_lowest)) {
+            if (G_lowest === undefined || compareOrder(G_c, G_lowest)) {
                 G_lowest = G_c
             } else {
                 G_lowest = distinguish(G, b_id_to_hash_double_tick, hashPartition_tick, G_lowest)
@@ -96,7 +96,7 @@ const distinguish = (G: Store, b_id_to_hash: {[key:string]:string}, hashPartitio
  * @param G 
  * @returns 
  */
-const compareOrder = (G:Store, H:Store) => {
+const compareOrder = (G: Store, H: Store) => {
     // TODO what is the meaning of "lowest graph" what is the order thing?
     return G.size < H.size // maybe? fore easy?
 }
