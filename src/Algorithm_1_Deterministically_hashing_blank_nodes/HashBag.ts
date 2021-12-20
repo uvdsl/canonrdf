@@ -33,7 +33,7 @@ export default class HashBag {
      */
     value() {
         // sorting takes care of commutative and associative property
-       return hashString(this._hashes.sort().join()); // TODO implement proper hash value compare
+       return hashString(this._hashes.sort().join("")); // TODO implement proper hash value compare
     }
 
 }
