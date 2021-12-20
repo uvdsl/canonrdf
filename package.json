@@ -8,7 +8,7 @@
     "/dist"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --coverage"
   },
   "repository": {
     "type": "git",
@@ -28,6 +28,12 @@
     "n3": "^1.12.2"
   },
   "devDependencies": {
-    "@types/n3": "^1.10.4"
+    "@babel/core": "^7.16.5",
+    "@babel/preset-env": "^7.16.5",
+    "@babel/preset-typescript": "^7.16.5",
+    "@types/jest": "^27.0.3",
+    "@types/n3": "^1.10.4",
+    "babel-jest": "^27.4.5",
+    "jest": "^27.4.5"
   }
 }
