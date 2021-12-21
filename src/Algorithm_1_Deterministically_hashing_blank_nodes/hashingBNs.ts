@@ -34,12 +34,12 @@ terms does not change in an iteration, or (ii) no two terms share a hash.
  * @param G n3.Store, the graph
  * @returns an Object `B_ids_to_hashes: { [key: string]: string }`
 */
-export const hashBNodes = (G: Store, initialisedBlankNodeHashes: { [key: string]: string } = undefined) => {
+export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string]: string }) => {
     // <p1>
     // a map from term to id
-    let IL: { [key: string]: Term }; // the set of IRIs and Literals { IL.id : term}
-    let B: { [key: string]: Term }; // the set of BlankNodes { B.id : term}
-    let uniq_terms = new Set(G.getQuads(null, null, null, null).map(quad => [quad.subject, quad.predicate, quad.object, quad.graph]).flat());
+    let IL: { [key: string]: Term } = {}; // the set of IRIs and Literals { IL.id : term}
+    let B: { [key: string]: Term } = {}; // the set of BlankNodes { B.id : term}
+    let uniq_terms = new Set(G.getQuads(null, null, null,null).map(quad => [quad.subject, quad.predicate, quad.object]).flat()); // TODO adjust for datasets?
     uniq_terms.forEach(term => {
         if (n3Util.isBlankNode(term)) {
             B[term.id] = term;
@@ -47,13 +47,14 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes: { [key: string]
             IL[term.id] = term;
         }
     });
+    if (Object.keys(B).length == 0) return {}; // if there is no blank nodes. stop.
     uniq_terms = undefined; // throw away terms set
-    // a map from terms to hashes // TODO split between B and IL
-    const il_id_to_hash: { [key: string]: string } = {}; // { IL.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse, or not idk, it's something
+    // a map from terms to hashes 
+    const il_id_to_hash: { [key: string]: string } = {}; // { IL.id : hashvalue} aka a `hash table` although not quite, IL do not need a second dim
     Object.values(IL).forEach(il => il_id_to_hash[il.id] = hashString(il.id)); // static hash based on the string of the term
-
+    
     // START allow for init of blank node hashes as necessary for algo 3
-    let b_id_to_hash: { [key: string]: string } = {}; // { B.id : hashvalue} aka a `hash partition` although not quite, it is actually the inverse, or not idk, it's something
+    let b_id_to_hash: { [key: string]: string } = {}; // { B.id : hashvalue} aka a  `hash table` although not quite, the second dimension is only created later
     const B_HashBags: { [key: string]: HashBag } = {}; // {B.id : HashBag Obj}
     if (initialisedBlankNodeHashes === undefined) {
         Object.values(B).forEach(b => { b_id_to_hash[b.id] = "0"; B_HashBags[b.id] = new HashBag(["0"]); }); // initial hash
@@ -63,7 +64,6 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes: { [key: string]
         Object.values(B).forEach(b => B_HashBags[b.id] = new HashBag([b_id_to_hash[b.id]])); // initial hash
     }
     //END allow for init of blank node hashes as necessary for algo 3
-
     // </p1>
     // <p2>
     // let i = 0
@@ -99,7 +99,7 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes: { [key: string]
         // </p2>
         // <p3>
         // until (∀x , y : hash_i [x] = hash_i [y] iff hash_{i−1}[x ] = hash_{i−1}[y]) or (∀x , y : hash_i [x ] = hash_i [y] iff x = y)
-    } while (isStable(b_id_to_hash, B_ids_to_hashes_prev));
+    } while (!isStable(b_id_to_hash, B_ids_to_hashes_prev));
     // </p3>
     return b_id_to_hash;
 }
@@ -128,7 +128,7 @@ export const hashString = (s: string) => {
  * @param is_edge_out the edge direction flag
  */
 export const hashTuple = (...data: string[]) => {
-    return hashString(data.join());
+    return hashString(data.join(""));
 }
 
 // <p3>
@@ -150,12 +150,12 @@ const isStable = (p: { [key: string]: string }, p_prev: { [key: string]: string 
             // // i.e. if in prev it x and y hashEqual then in this it they must be hashEqual as well, otherwise return false
             // // i.e. x and y should only be hashEqual if x and y were hashEqual in prev iteration otherwise return false
             // // i.e. if hash not stable
-            // if ((p[x] === p[y] && p_prev[x] !== p_prev[y]) || // OR
+            // if ((p[x] === p[y] && p_prev[x] !== p_prev[y]) && // OR -> negate to AND
             //     //(ii) no two terms share a hash.
             //     // ∀x,y: hash_i [x] = hash_i [y] iff x = y)
             //     // i.e. x and y should only be hashEqual if x == y otherwise return false
             //     (p[x] === p[y] && x !== y)) return false;
-            if ((p[x] === p[y] && (p_prev[x] !== p_prev[y]) || x !== y)) return false; // TODO proper hash compare
+            if (p[x] === p[y] && /* iff */ (p_prev[x] !== p_prev[y] && x !== y)) return false; // NotTODO proper hash compare, should be ok.
         }
     }
     return true
