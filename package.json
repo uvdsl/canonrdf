@@ -8,6 +8,7 @@
     "/dist"
   ],
   "scripts": {
+    "build": "npm run coverage && tsc",
     "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'test/**/*.ts'",
     "coverage": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' nyc --reporter=text mocha -r ts-node/register 'test/**/*.ts'"
   },
