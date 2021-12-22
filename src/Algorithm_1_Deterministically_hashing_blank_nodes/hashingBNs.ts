@@ -5,6 +5,7 @@ import HashBag from './HashBag';
 const HASH_ALGO = 'md5' // TODO to be determined
 const EDGE_OUT = '+'; // TODO to be determined
 const EDGE_IN = '-'; // TODO to be determined
+const INITIAL_BN_HASH = '0' // TODO to be determined
 
 /**
 Page 16f. of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
@@ -39,7 +40,7 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
     // a map from term to id
     let IL: { [key: string]: Term } = {}; // the set of IRIs and Literals { IL.id : term}
     let B: { [key: string]: Term } = {}; // the set of BlankNodes { B.id : term}
-    let uniq_terms = new Set(G.getQuads(null, null, null,null).map(quad => [quad.subject, quad.predicate, quad.object]).flat()); // TODO adjust for datasets?
+    let uniq_terms = new Set(G.getQuads(null, null, null, null).map(quad => [quad.subject, quad.predicate, quad.object]).flat()); // TODO adjust for datasets?
     uniq_terms.forEach(term => {
         if (n3Util.isBlankNode(term)) {
             B[term.id] = term;
@@ -52,12 +53,12 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
     // a map from terms to hashes 
     const il_id_to_hash: { [key: string]: string } = {}; // { IL.id : hashvalue} aka a `hash table` although not quite, IL do not need a second dim
     Object.values(IL).forEach(il => il_id_to_hash[il.id] = hashString(il.id)); // static hash based on the string of the term
-    
+
     // START allow for init of blank node hashes as necessary for algo 3
     let b_id_to_hash: { [key: string]: string } = {}; // { B.id : hashvalue} aka a  `hash table` although not quite, the second dimension is only created later
     const B_HashBags: { [key: string]: HashBag } = {}; // {B.id : HashBag Obj}
     if (initialisedBlankNodeHashes === undefined) {
-        Object.values(B).forEach(b => { b_id_to_hash[b.id] = "0"; B_HashBags[b.id] = new HashBag(["0"]); }); // initial hash
+        Object.values(B).forEach(b => { b_id_to_hash[b.id] = INITIAL_BN_HASH; B_HashBags[b.id] = new HashBag([INITIAL_BN_HASH]); }); // initial hash
     } else {
         b_id_to_hash = initialisedBlankNodeHashes;
         // TODO Question: are hashbags getting reused as well?
@@ -73,7 +74,7 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
         B_ids_to_hashes_prev = b_id_to_hash;
         // for (b, p, o) ∈ G : b ∈ B do
         Object.values(B).forEach(b => {
-            G.getQuads(b, null, null, null).sort().forEach(quad => { // TODO adjust for datasets : blank nodes are scoped within the graph...
+            G.getQuads(b, null, null, null).sort().forEach(quad => { // TODO sorting // TODO adjust for datasets : blank nodes are scoped within the graph...
                 const o_hash = (n3Util.isBlankNode(quad.object)) ? B_ids_to_hashes_prev[quad.object.id] : il_id_to_hash[quad.object.id]
                 const p_hash = il_id_to_hash[quad.predicate.id]
                 const c = hashTuple(o_hash, p_hash, EDGE_OUT);
@@ -83,18 +84,19 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
             // })
             // for (s, p, b) ∈ G : b ∈ B do
             // Object.values(B).forEach(b => {
-            G.getQuads(null, null, b, null).sort().forEach(quad => { // TODO adjust for datasets : blank nodes are scoped within the graph...
+            G.getQuads(null, null, b, null).sort().forEach(quad => { // TODO sorting // TODO adjust for datasets : blank nodes are scoped within the graph...
                 const s_hash = (n3Util.isBlankNode(quad.subject)) ? B_ids_to_hashes_prev[quad.subject.id] : il_id_to_hash[quad.subject.id]
                 const p_hash = il_id_to_hash[quad.predicate.id]
                 const c = hashTuple(s_hash, p_hash, EDGE_IN);
                 // B_ids_to_hashes[b.id] = hashBag(c, B_ids_to_hashes[b.id]); // (footnote 1)
                 B_HashBags[b.id].add(c); // (footnote 1)
             })
-
-            // (footnote 1) 
-            // in order to create a commutative and associative hash, we need an accumulator `HashBag` for each blanknode
-            // (it is not possible to calculate a hash in such way in an iterative manner as it may appear from the listing in the paper)
-            b_id_to_hash[b.id] = B_HashBags[b.id].value();
+        })
+        // (footnote 1) 
+        // in order to create a commutative and associative hash, we need an accumulator `HashBag` for each blanknode
+        // (it is not possible to calculate a hash in such way in an iterative manner as it may appear from the listing in the paper)
+        Object.keys(B).forEach(b_id => {
+            b_id_to_hash[b_id] = B_HashBags[b_id].value();
         })
         // </p2>
         // <p3>

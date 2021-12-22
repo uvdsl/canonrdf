@@ -1,8 +1,9 @@
-import { hashBNodes, hashString, hashTuple } from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs';
 import { expect } from 'chai';
+import { BlankNode, Literal, NamedNode, Parser, Quad, Store } from 'n3';
+import { hashBNodes, hashString, hashTuple } from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs';
 
 import rewire from 'rewire';
-import { BlankNode, Literal, NamedNode, Quad, Store } from 'n3';
+
 const hBNs_rewired = rewire('../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs');
 const isStable = hBNs_rewired.__get__('isStable');
 
@@ -13,15 +14,68 @@ describe('hashBNodes()', () => {
         const current = hashBNodes(graph);
         expect(current).to.deep.equal(target);
     });
-    it('results in ', () => { 
+    it('takes an outgoing edge', () => {
         const graph = new Store([
             new Quad(new BlankNode('bn'), new NamedNode('#p'), new Literal("o")),
-            new Quad(new NamedNode('#s'), new NamedNode('#p'), new BlankNode('bn')),
         ]);
-        const target: { [key: string]: string } = {};
+        // initial hash:    "0"
+        // object hash:     "d95679752134a2d9eb61dbd7b91c4bcc"
+        // predicate hash:  "f81fa5ad99b60db86d3a53bbb91c0aac"
+        // edge string:     "d95679752134a2d9eb61dbd7b91c4bccf81fa5ad99b60db86d3a53bbb91c0aac+"
+        // edge hash:       "ef3841f6c96af5d1bf8945387f19913d"
+        // hash bag string: "0ef3841f6c96af5d1bf8945387f19913d"
+        // hash bag value:  "c78111f9aa43cdb997d233ac5d4e6b64"
+        const target: { [key: string]: string } = { '_:bn': 'c78111f9aa43cdb997d233ac5d4e6b64' };
         const current = hashBNodes(graph);
         expect(current).to.deep.equal(target);
-    })
+    });
+    it('takes an incoming edge ', () => {
+        const graph = new Store([
+            new Quad(new NamedNode('#s'), new NamedNode('#p'), new BlankNode('bn')),
+        ]);
+        // initial hash:    "0"
+        // subject hash:    "1287a93b416f22d81ea8d0f71267fdc6"
+        // predicate hash:  "f81fa5ad99b60db86d3a53bbb91c0aac"
+        // edge string:     "1287a93b416f22d81ea8d0f71267fdc6f81fa5ad99b60db86d3a53bbb91c0aac-"
+        // edge hash:       "0d6a8bd6cb6ed0d7adf2194363355b16"
+        // hash bag string: "00d6a8bd6cb6ed0d7adf2194363355b16"
+        // hash bag value:  "2836dff96f26842f6c9cc7d3616f35f1"
+        const target: { [key: string]: string } = { '_:bn': '2836dff96f26842f6c9cc7d3616f35f1' };
+        const current = hashBNodes(graph);
+        expect(current).to.deep.equal(target);
+    });
+    it('takes incoming and outgoing edges ', () => {
+        const graph = new Store([
+            new Quad(new NamedNode('#s'), new NamedNode('#p'), new BlankNode('bn')),
+            new Quad(new BlankNode('bn'), new NamedNode('#p'), new Literal("o")),
+        ]);
+        // outgoing edge hash:  "ef3841f6c96af5d1bf8945387f19913d"
+        // incoming edge hash:  "0d6a8bd6cb6ed0d7adf2194363355b16"
+        // hash bag string:     "00d6a8bd6cb6ed0d7adf2194363355b16ef3841f6c96af5d1bf8945387f19913d"
+        // hash bag value:      "7602701de9be71baea400861811eca82"
+        const target: { [key: string]: string } = { '_:bn': '7602701de9be71baea400861811eca82' };
+        const current = hashBNodes(graph);
+        expect(current).to.deep.equal(target);
+    });
+        it('results in equal hashes for all BNs', () => {
+            const ttl = `
+                    _:a <p> _:b .
+    				_:b <p> _:c .
+    				_:c <p> _:a .
+    				_:x <p> _:y .
+    				_:y <p> _:z .
+    				_:z <p> _:x .
+    				<u> <p> <v> .
+    `
+            const graph = new Store();
+            const parser = new Parser({ format: 'turtle*' });
+            const quads = parser.parse(ttl)
+            graph.addQuads(quads);
+            const current = hashBNodes(graph);
+            const hvalues = new Set(Object.values(current))
+            expect(hvalues.size).to.equal(1); 
+        })
+
 });
 
 
