@@ -43,7 +43,13 @@ export default class OrderedHashPartition {
             if (this._hash_to_b_ids[a].length > this._hash_to_b_ids[b].length) {
                 return 1;
             }
-            return (a < b) ? -1 : 1; // use hash value as tie breaker TODO real hash value comparison
+            // return (a < b) ? -1 : 1; // use hash value as tie breaker 
+            if (a.length < b.length) return -1;
+            if (a.length > b.length) return 1;
+            return (a < b) ? -1 : 1; // equality cannot happen by definition
+            // if (a < b) return -1;
+            // if (a > b) return 1;
+            // return 0;
         })
     }
 
@@ -72,6 +78,7 @@ export default class OrderedHashPartition {
                 return hash
             }
         }
+        return undefined
     }
 
     // /**
