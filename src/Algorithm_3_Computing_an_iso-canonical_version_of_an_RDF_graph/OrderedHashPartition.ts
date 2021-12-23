@@ -1,6 +1,3 @@
-
-
-
 /**
  * Page 21 of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
  * 
@@ -18,29 +15,29 @@ and likewise for B′′, and that B′ and B′′ are disjoint)."
  */
 export default class OrderedHashPartition {
     // store values and manage them
-    private _b_id_to_hash: { [key: string]: string };
+    private _b_id_to_hash: { [key: string]: Buffer };
     private _hash_to_b_ids: { [key: string]: string[] };
-    private _ordering: Array<string>;
+    private _ordering: Array<Buffer>;
     // create partition: compute hash partition P of bnodes(G) w.r.t. hash
-    constructor(B_id_to_hash: { [key: string]: string }) {
+    constructor(B_id_to_hash: { [key: string]: Buffer }) {
         this._b_id_to_hash = B_id_to_hash;
         this._hash_to_b_ids = {};
         this._ordering = []
         // fill the partition
         Object.entries(B_id_to_hash).forEach(([k, v]) => {
-            if (this._hash_to_b_ids[v] === undefined) {
-                this._hash_to_b_ids[v] = []
+            if (this._hash_to_b_ids[v.toString('hex')] === undefined) {
+                this._hash_to_b_ids[v.toString('hex')] = []
                 this._ordering.push(v)
             }
-            this._hash_to_b_ids[v].push(k)
+            this._hash_to_b_ids[v.toString('hex')].push(k)
         })
         // order the partition
         this._ordering.sort((a, b) => {
             //  order by smallest parts first; use hash to break ties
-            if (this._hash_to_b_ids[a].length < this._hash_to_b_ids[b].length) {
+            if (this._hash_to_b_ids[a.toString('hex')].length < this._hash_to_b_ids[b.toString('hex')].length) {
                 return -1;
             }
-            if (this._hash_to_b_ids[a].length > this._hash_to_b_ids[b].length) {
+            if (this._hash_to_b_ids[a.toString('hex')].length > this._hash_to_b_ids[b.toString('hex')].length) {
                 return 1;
             }
             // return (a < b) ? -1 : 1; // use hash value as tie breaker 
@@ -74,8 +71,9 @@ export default class OrderedHashPartition {
      */
     getLowestNonTrivial() {
         for (const hash of this._ordering) {
-            if (this._hash_to_b_ids[hash].length > 1) {
-                return hash
+            if (this._hash_to_b_ids[hash.toString('hex')].length > 1) {
+                const bns = this._hash_to_b_ids[hash.toString('hex')]
+                return { lowestNonTrivialHash: hash, lowestNonTrivialBNs: bns }
             }
         }
         return undefined
@@ -91,9 +89,9 @@ export default class OrderedHashPartition {
     //     return this._b_id_to_hash[b_id];
     // }
 
-    getBNs(hash: string) {
-        return this._hash_to_b_ids[hash];
-    }
+    // getBNsByHash(hash: Buffer) {
+    //     return this._hash_to_b_ids.get(hash);
+    // }
     // get B_id_to_hash() {
     //     return this._B_id_to_hash;
     // }

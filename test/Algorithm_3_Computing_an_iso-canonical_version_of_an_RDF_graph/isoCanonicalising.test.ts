@@ -3,12 +3,12 @@ import { BlankNode, Literal, NamedNode, Parser, Quad, Store, Util as n3Util } fr
 import { isoCanonicalise } from '../../src';
 
 import rewire from 'rewire';
-import { hashBNodes } from '../../src';
+import { hashBNodes } from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs';
 import OrderedHashPartition from '../../src/Algorithm_3_Computing_an_iso-canonical_version_of_an_RDF_graph/OrderedHashPartition';
 
 const isoCan_rewired = rewire('../../src/Algorithm_3_Computing_an_iso-canonical_version_of_an_RDF_graph/isoCanonicalising');
 const distinguish: (G: Store, b_id_to_hash: {
-    [key: string]: string;
+    [key: string]: Buffer;
 }, hashPartition: OrderedHashPartition, G_lowest?: Store) => Store<Quad, Quad, Quad, Quad> = isoCan_rewired.__get__('distinguish');
 const isLowerOrderThan: (G: Store, H: Store) => boolean = isoCan_rewired.__get__('isLowerOrderThan');
 
@@ -16,19 +16,19 @@ const isLowerOrderThan: (G: Store, H: Store) => boolean = isoCan_rewired.__get__
 
 describe('isoCanonicalise()', () => {
     it('results in an emtpy blank node mapping for RDF graphs without blank nodes', () => {
-        const graph = new Store([new Quad(new NamedNode('#s'), new NamedNode('#p'), new Literal("o"))]);
+        const graph = new Store([new Quad(new NamedNode('#s'), new NamedNode('#p'), new Literal('"o"'))]);
         const target = new Store(graph.getQuads(null, null, null, null));
         const current = isoCanonicalise(graph);
         expect(current).to.deep.equal(target);
     });
     it('results in a relabeled graph ', () => {
         const graph = new Store([
-            new Quad(new BlankNode('bn'), new NamedNode('#p'), new Literal("o")),
+            new Quad(new BlankNode('bn'), new NamedNode('#p'), new Literal('"o"')),
             new Quad(new NamedNode('#s'), new NamedNode('#p'), new BlankNode('bn')),
         ]);
         const target = new Store([ // hash used from hashBNs test cases
-            new Quad(new BlankNode('7602701de9be71baea400861811eca82'), new NamedNode('#p'), new Literal("o")),
-            new Quad(new NamedNode('#s'), new NamedNode('#p'), new BlankNode('7602701de9be71baea400861811eca82')),
+            new Quad(new BlankNode('ee150da78d2b58fb4e40af496ed70ba5'), new NamedNode('#p'), new Literal('"o"')),
+            new Quad(new NamedNode('#s'), new NamedNode('#p'), new BlankNode('ee150da78d2b58fb4e40af496ed70ba5')),
         ]);
         const current = isoCanonicalise(graph);
         expect(current).to.deep.equal(target);
@@ -45,16 +45,16 @@ describe('isoCanonicalise()', () => {
 				<u> <p> <v> .
 `
         const input = new Store();
-        const parser = new Parser({ format: 'turtle*' });
+        const parser = new Parser();
         const quads = parser.parse(data)
         input.addQuads(quads);
         const target = new Set([
-            '_:e0ab7ba160f6b21e3bea79d1d202b2d6',
-            '_:b6930545059bdf0ff4394335a24c1350',
-            '_:cd1d51dd5250b008437dc74d6b5a5630',
-            '_:74c2a3bd91d6a353edd26b23f03a6d44',
-            '_:b1fed72fc88c370eac6a33ca78ac1bb0',
-            '_:bc60ccda82bed345371d660ec3865240',
+            '_:467fc2816420be45ed00d5f65d8cd2b3',
+            '_:ad33dde6cf23e0119c1d67465a4f75cd',
+            '_:4d9962d5335797a88e52079a0a82653f',
+            '_:a64690185d4edab5a3aa2c287b3a16f7',
+            '_:6338ab136028b2b9c87943108f09c1c8',
+            '_:597a342f8f77fe3e61450d25238a35ed'
         ]);
         const h = isoCanonicalise(input);
         const current = new Set(h.getQuads(null, null, null, null).map(quad => {

@@ -1,11 +1,7 @@
 import { Term, Store, Util as n3Util } from 'n3';
 import { createHash } from 'crypto';
 import HashBag from './HashBag';
-
-const HASH_ALGO = 'md5' // TODO to be determined
-const EDGE_OUT = '+'; // TODO to be determined (convert to hex?)
-const EDGE_IN = '-'; // TODO to be determined (convert to hex?)
-const INITIAL_BN_HASH = '0' // TODO to be determined
+import { INITIAL_BN_HASH, EDGE_OUT, EDGE_IN, HASH_ALGO } from '../constants';
 
 /**
 Page 16f. of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
@@ -35,40 +31,35 @@ terms does not change in an iteration, or (ii) no two terms share a hash.
  * @param G n3.Store, the graph
  * @returns an Object `B_ids_to_hashes: { [key: string]: string }`
 */
-export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string]: string }) => {
+export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string]: Buffer }) => {
     // <p1>
-    // a map from term to id
-    let IL: { [key: string]: Term } = {}; // the set of IRIs and Literals { IL.id : term}
-    let B: { [key: string]: Term } = {}; // the set of BlankNodes { B.id : term}
-    let uniq_terms = new Set(G.getQuads(null, null, null, null).map(quad => [quad.subject, quad.predicate, quad.object]).flat()); // TODO adjust for datasets?
-    uniq_terms.forEach(term => {
-        if (n3Util.isBlankNode(term)) {
-            B[term.id] = term;
-        } else {
-            IL[term.id] = term;
-        }
-    });
+    // get the terms of the graph:
+    const { IL, B } = getTerms(G);// IL (set of IRIs and Literals), B (set of BlankNodes), or rather mapping id to term.
     if (Object.keys(B).length == 0) return {}; // if there is no blank nodes. stop.
-    uniq_terms = undefined; // throw away terms set
-    // a map from terms to hashes 
-    const il_id_to_hash: { [key: string]: string } = {}; // { IL.id : hashvalue} aka a `hash table` although not quite, IL do not need a second dim
-    Object.values(IL).forEach(il => il_id_to_hash[il.id] = hashString(il.id)); // static hash based on the string of the term
 
+    // init hash mappings
+    const il_id_to_hash: { [key: string]: Buffer } = {}; // { IL.id : hashvalue} aka a `hash table` although not quite, IL do not need a second dim
+    let b_id_to_hash: { [key: string]: Buffer } = {}; // { B.id : hashvalue} aka a  `hash table` although not quite, the second dimension is only created later
+    const b_HashBags: { [key: string]: HashBag } = {}; // {B.id : HashBag Obj} // a hashbag for commutative and associative hashes of blank nodes 
+
+    // fill term id to hash mappings
+    Object.values(IL).forEach(il => il_id_to_hash[il.id] = hash(Buffer.from(il.id))); // static hash based on the string of the term
     // START allow for init of blank node hashes as necessary for algo 3
-    let b_id_to_hash: { [key: string]: string } = {}; // { B.id : hashvalue} aka a  `hash table` although not quite, the second dimension is only created later
-    const B_HashBags: { [key: string]: HashBag } = {}; // {B.id : HashBag Obj}
     if (initialisedBlankNodeHashes === undefined) {
-        Object.values(B).forEach(b => { b_id_to_hash[b.id] = INITIAL_BN_HASH; B_HashBags[b.id] = new HashBag([INITIAL_BN_HASH]); }); // initial hash
+        Object.keys(B).forEach(b_id => {
+            b_id_to_hash[b_id] = INITIAL_BN_HASH;
+            b_HashBags[b_id] = new HashBag([INITIAL_BN_HASH]);
+        }); // initial hash
     } else {
         b_id_to_hash = initialisedBlankNodeHashes;
-        // TODO Question: are hashbags getting reused as well?
-        Object.values(B).forEach(b => B_HashBags[b.id] = new HashBag([b_id_to_hash[b.id]])); // initial hash
+        Object.keys(B).forEach(b_id => b_HashBags[b_id] = new HashBag([b_id_to_hash[b_id]])); // initial hash
     }
     //END allow for init of blank node hashes as necessary for algo 3
     // </p1>
+
     // <p2>
     // let i = 0
-    let B_ids_to_hashes_prev: { [key: string]: string }; // { term.id : hashvalue} aka a `hash partition` of the previous iteration
+    let B_ids_to_hashes_prev: { [key: string]: Buffer }; // { term.id : hashvalue} aka a `hash partition` of the previous iteration
     do {
         // i++;
         B_ids_to_hashes_prev = b_id_to_hash;
@@ -79,7 +70,7 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
                 const p_hash = il_id_to_hash[quad.predicate.id]
                 const c = hashTuple(o_hash, p_hash, EDGE_OUT);
                 // B_ids_to_hashes[b.id] = hashBag(c, B_ids_to_hashes[b.id]); // (footnote 1)
-                B_HashBags[b.id].add(c); // (footnote 1)
+                b_HashBags[b.id].add(c); // (footnote 1)
             })
             // })
             // for (s, p, b) ∈ G : b ∈ B do
@@ -89,14 +80,14 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
                 const p_hash = il_id_to_hash[quad.predicate.id]
                 const c = hashTuple(s_hash, p_hash, EDGE_IN);
                 // B_ids_to_hashes[b.id] = hashBag(c, B_ids_to_hashes[b.id]); // (footnote 1)
-                B_HashBags[b.id].add(c); // (footnote 1)
+                b_HashBags[b.id].add(c); // (footnote 1)
             })
         })
         // (footnote 1) 
         // in order to create a commutative and associative hash, we need an accumulator `HashBag` for each blanknode
         // (it is not possible to calculate a hash in such way in an iterative manner as it may appear from the listing in the paper)
         Object.keys(B).forEach(b_id => {
-            b_id_to_hash[b_id] = B_HashBags[b_id].value();
+            b_id_to_hash[b_id] = b_HashBags[b_id].value();
         })
         // </p2>
         // <p3>
@@ -106,15 +97,25 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
     return b_id_to_hash;
 }
 
+
+const getTerms = (G: Store) => {
+    // a map from term to id
+    let IL: { [key: string]: Term } = {}; // the set of IRIs and Literals { IL.id : term}
+    let B: { [key: string]: Term } = {}; // the set of BlankNodes { B.id : term}
+    let uniq_terms = new Set(G.getQuads(null, null, null, null).map(quad => [quad.subject, quad.predicate, quad.object]).flat()); // TODO adjust for datasets?
+    uniq_terms.forEach(term => (n3Util.isBlankNode(term)) ? B[term.id] = term : IL[term.id] = term);
+    return { IL, B }
+}
+
 /**
- * Simply hashes some string s
+ * Simply hashes some data
  * (aka produces a color)
  * 
- * @param s a string to hash
- * @returns hash of s as hex string
+ * @param buffer binary data to hash
+ * @returns hash of input as Buffer
  */
-export const hashString = (s: string) => {
-    return createHash(HASH_ALGO).update(s).digest('hex');
+export const hash = (buffer: Buffer) => {
+    return createHash(HASH_ALGO).update(buffer).digest();
 }
 
 /**
@@ -124,12 +125,11 @@ export const hashString = (s: string) => {
  * 
  * This is my basic hack (so-called implementation)
  * 
- * @param s_o_hash the hash of the subject OR the object of the triple the blank node is in
- * @param p_hash the hash of the predicate of the triple the blank node is in
- * @param is_edge_out the edge direction flag
+ * @param ...data some binary data to join up and hash
+ * @returns hash of input as buffer
  */
-export const hashTuple = (...data: string[]) => {
-    return hashString(data.join(""));
+export const hashTuple = (...data: Buffer[]) => {
+    return hash(Buffer.concat(data));
 }
 
 // <p3>
@@ -143,7 +143,7 @@ export const hashTuple = (...data: string[]) => {
  * (i)  x and y should only be hashEqual if x and y were hashEqual in prev iteration otherwise return false
  * (ii) x and y should only be hashEqual if x == y otherwise return false
  */
-const isStable = (p: { [key: string]: string }, p_prev: { [key: string]: string }) => {
+const isStable = (p: { [key: string]: Buffer }, p_prev: { [key: string]: Buffer }) => {
     for (const x of Object.keys(p)) {
         for (const y of Object.keys(p)) {
             // // (i) the hash-based partition of terms does not change in an iteration
@@ -156,7 +156,8 @@ const isStable = (p: { [key: string]: string }, p_prev: { [key: string]: string 
             //     // ∀x,y: hash_i [x] = hash_i [y] iff x = y)
             //     // i.e. x and y should only be hashEqual if x == y otherwise return false
             //     (p[x] === p[y] && x !== y)) return false;
-            if (p[x] === p[y] && /* iff */ (p_prev[x] !== p_prev[y] && x !== y)) return false; // NotTODO proper hash compare, should be ok.
+            // if (p[x] === p[y] && /* iff */ (p_prev[x] !== p_prev[y] && x !== y)) return false; // NotTODO proper hash compare, should be ok.
+            if (p[x].equals(p[y]) && /* iff */ (!p_prev[x].equals(p_prev[y]) && x !== y)) return false;
         }
     }
     return true

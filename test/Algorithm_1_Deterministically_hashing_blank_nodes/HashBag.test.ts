@@ -1,21 +1,21 @@
 import HashBag from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/HashBag';
-import { hashString } from "../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs";
+import { hash } from "../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs";
 import { expect } from 'chai';
 
 describe('HashBag', () => {
     it('add()', () => {
-        const input = ['y', 'x'];
+        const input = [Buffer.from('y'), Buffer.from('x')];
         const current = new HashBag(input);
-        current.add('z');
-        const target = ['y', 'x', 'z']
+        current.add(Buffer.from('z'));
+        const target = [Buffer.from('y'), Buffer.from('x'), Buffer.from('z')];
         expect(input).to.deep.equal(target)
     });
     it('value()', () => {
-        const input = ['1E','1E','153B', 'B9', '1F'];
-        const sortedjoin = '1E1E1FB9153B'
+        const input = [Buffer.from('1E', 'hex'), Buffer.from('1E', 'hex'), Buffer.from('153B', 'hex'), Buffer.from('B9', 'hex'), Buffer.from('1F', 'hex')];
+        const sortedjoin = Buffer.from('1E1E1FB9153B', 'hex')
         const current = new HashBag(input);
-        const target = hashString(sortedjoin);
-        expect(current.value()).to.equal(target);
+        const target = hash(sortedjoin);
+        expect(current.value().equals(target)).to.be.true;
     });
 
 });

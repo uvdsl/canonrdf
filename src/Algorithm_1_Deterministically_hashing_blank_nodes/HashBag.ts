@@ -1,4 +1,4 @@
-import { hashString } from "./hashingBNs";
+import { hash } from "./hashingBNs";
 
 /**
  * Page 16f. of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
@@ -12,19 +12,19 @@ import { hashString } from "./hashingBNs";
  */
 export default class HashBag {
     // accumulating hashes
-    private _hashes: Array<string>;
+    private _hashes: Array<Buffer>;
     /**
      * Accumulator of hashes (commutative and associative)
      * @param hashes previously calculated hashes if any.
      */
-    constructor(hashes: Array<string>) {
+    constructor(hashes: Array<Buffer>) {
         this._hashes = hashes;
     }
     /**
      * Add a new hash value to be accumulated
      * @param hash the hash to be accumulated
      */
-    add(hash: string) {
+    add(hash: Buffer) {
         this._hashes.push(hash);
     }
     /**
@@ -32,24 +32,16 @@ export default class HashBag {
      * @returns hash value as hex string
      */
     value() {
-        console.log(this._hashes)
-        const s = this._hashes.sort((a,b) => {
+        // sorting takes care of commutative and associative property
+        const sorted = this._hashes.sort((a, b) => {
             if (a.length < b.length) return -1;
             if (a.length > b.length) return 1;
             if (a < b) return -1;
             if (a > b) return 1;
             return 0;
-           }).join("")
-        console.log(s)
-       console.log(hashString(s)) // TODO initial hash to 0 as hex not only string...
-        // sorting takes care of commutative and associative property
-       return hashString(this._hashes.sort((a,b) => {
-        if (a.length < b.length) return -1;
-        if (a.length > b.length) return 1;
-        if (a < b) return -1;
-        if (a > b) return 1;
-        return 0;
-       }).join(""));
+        });
+        const val = Buffer.concat(sorted)
+        return hash(val);
     }
 
 }

@@ -1,5 +1,5 @@
 import { Store,  Util as n3Util  } from "n3";
-import { hashBNodes } from "..";
+import { hashBNodes } from "../Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs";
 
 /**
  * Page 19f. https://aidanhogan.com/docs/rdf-canonicalisation.pdf
