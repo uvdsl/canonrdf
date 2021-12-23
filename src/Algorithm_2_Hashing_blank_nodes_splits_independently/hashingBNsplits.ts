@@ -19,7 +19,7 @@ import { hashBNodes } from "../Algorithm_1_Deterministically_hashing_blank_nodes
  * @returns an Object `B_ids_to_hashes: { [key: string]: string }`
  */
 export const hashBNodesPerSplit = (G: Store) => {
-    let B_ids_to_hashes: { [key: string]: string } = {};
+    let B_ids_to_hashes: { [key: string]: Buffer } = {};
     const G_split = split(G);
     G_split.forEach(G_i => Object.assign(B_ids_to_hashes, hashBNodes(G_i)));
     return B_ids_to_hashes;
