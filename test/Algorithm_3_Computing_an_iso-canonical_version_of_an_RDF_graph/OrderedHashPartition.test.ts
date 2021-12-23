@@ -41,8 +41,4 @@ describe('OrderedHashPartition', () => {
         const current = p.getLowestNonTrivial()
         expect(current).to.equal(target)
     });
-    
-    
-
-
 });

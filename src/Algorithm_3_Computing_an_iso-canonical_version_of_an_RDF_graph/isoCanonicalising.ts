@@ -72,21 +72,21 @@ guished recursively.
  * @param G_lowest 
  * @returns 
  */
-const distinguish = (G: Store, b_id_to_hash: { [key: string]: string }, hashPartition: OrderedHashPartition, G_lowest: Store = undefined) => {
+const distinguish = (G: Store, b_id_to_hash: { [key: string]: string }, hashPartition: OrderedHashPartition, G_lowest?: Store) => {
     // hashPartition is already ordered.
     const lowestNonTrivialPart = hashPartition.getLowestNonTrivial()
-    for (const b_id of lowestNonTrivialPart) {
-        const b_id_to_hash_tick = Object.assign({}, b_id_to_hash)
+    for (const b_id of hashPartition.getBNs(lowestNonTrivialPart)) {
+        const b_id_to_hash_tick = Object.assign({}, b_id_to_hash) //clone
         b_id_to_hash_tick[b_id] = hashTuple(b_id_to_hash_tick[b_id], MARKER)
-        const b_id_to_hash_double_tick = hashBNodes(G, b_id_to_hash_tick) // or hashBNodesPerSplit(G) // TODO allow for initialisation of hash values
+        const b_id_to_hash_double_tick = hashBNodes(G, b_id_to_hash_tick) // or hashBNodesPerSplit(G)
         const hashPartition_tick = new OrderedHashPartition(b_id_to_hash_double_tick)
         if (hashPartition_tick.isFine()) {
             const G_c = relabel(G, b_id_to_hash_double_tick)
-            if (G_lowest === undefined || compareOrder(G_c, G_lowest)) {
+            if (G_lowest === undefined || isLowerOrderThan(G_c, G_lowest)) {
                 G_lowest = G_c
-            } else {
-                G_lowest = distinguish(G, b_id_to_hash_double_tick, hashPartition_tick, G_lowest)
             }
+        } else {
+            G_lowest = distinguish(G, b_id_to_hash_double_tick, hashPartition_tick, G_lowest)
         }
     }
     return G_lowest
@@ -96,9 +96,26 @@ const distinguish = (G: Store, b_id_to_hash: { [key: string]: string }, hashPart
 /**
  *  
  * @param G 
- * @returns 
+ * @param H
+ * @returns true if G lower order than H
  */
-const compareOrder = (G: Store, H: Store) => {
-    // TODO what is the meaning of "lowest graph" what is the order thing?
-    return G.size < H.size // maybe? fore easy?
+const isLowerOrderThan = (G: Store, H: Store) => {
+    const GQuads = G.getQuads(null,null,null,null);
+    const HQuads = H.getQuads(null,null,null,null);
+    const GwoH = GQuads.filter(q => !H.has(q));
+    const HwoG = HQuads.filter(q => !G.has(q));
+
+    if (GwoH.length == 0 && !(HwoG.length == 0)) return true // G sub H
+    if (GwoH.length == 0 && HwoG.length == 0)  return false // G eq H
+    if (!(GwoH.length == 0) && HwoG.length == 0)  return false // H sub G
+    //  if (!(GwoH.length == 0) && !(HwoG.length == 0)) // neither
+
+    for(const quad of GwoH) {
+        const qlex = `${quad.subject.id}${quad.predicate.id}${quad.object.id}${quad.graph.id}`
+        for(const puad of HwoG) {
+            const plex = `${puad.subject.id}${puad.predicate.id}${puad.object.id}${puad.graph.id}`
+            if (plex <= qlex) return false
+        }
+    }
+    return true
 }

@@ -57,8 +57,8 @@ describe('hashBNodes()', () => {
         const current = hashBNodes(graph);
         expect(current).to.deep.equal(target);
     });
-        it('results in equal hashes for all BNs', () => {
-            const ttl = `
+    it('results in equal hashes for all BNs', () => {
+        const ttl = `
                     _:a <p> _:b .
     				_:b <p> _:c .
     				_:c <p> _:a .
@@ -67,14 +67,14 @@ describe('hashBNodes()', () => {
     				_:z <p> _:x .
     				<u> <p> <v> .
     `
-            const graph = new Store();
-            const parser = new Parser({ format: 'turtle*' });
-            const quads = parser.parse(ttl)
-            graph.addQuads(quads);
-            const current = hashBNodes(graph);
-            const hvalues = new Set(Object.values(current))
-            expect(hvalues.size).to.equal(1); 
-        })
+        const graph = new Store();
+        const parser = new Parser();
+        const quads = parser.parse(ttl)
+        graph.addQuads(quads);
+        const current = hashBNodes(graph);
+        const hvalues = new Set(Object.values(current))
+        expect(hvalues.size).to.equal(1);  // 6125229b7e32f569124d2aa34e6a299a
+    })
 
 });
 

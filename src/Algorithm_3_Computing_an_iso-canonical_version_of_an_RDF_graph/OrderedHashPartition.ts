@@ -88,9 +88,12 @@ export default class OrderedHashPartition {
     //  */
 
     // getHash(b_id: string) {
-    //     return this._b_id_to_hash[b_id]
+    //     return this._b_id_to_hash[b_id];
     // }
 
+    getBNs(hash: string) {
+        return this._hash_to_b_ids[hash];
+    }
     // get B_id_to_hash() {
     //     return this._B_id_to_hash;
     // }

@@ -3,8 +3,8 @@ import { createHash } from 'crypto';
 import HashBag from './HashBag';
 
 const HASH_ALGO = 'md5' // TODO to be determined
-const EDGE_OUT = '+'; // TODO to be determined
-const EDGE_IN = '-'; // TODO to be determined
+const EDGE_OUT = '+'; // TODO to be determined (convert to hex?)
+const EDGE_IN = '-'; // TODO to be determined (convert to hex?)
 const INITIAL_BN_HASH = '0' // TODO to be determined
 
 /**
@@ -115,7 +115,6 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
  */
 export const hashString = (s: string) => {
     return createHash(HASH_ALGO).update(s).digest('hex');
-    // `${hash.digest('hex')} ${filename}`;
 }
 
 /**

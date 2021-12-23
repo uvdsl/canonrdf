@@ -32,6 +32,16 @@ export default class HashBag {
      * @returns hash value as hex string
      */
     value() {
+        console.log(this._hashes)
+        const s = this._hashes.sort((a,b) => {
+            if (a.length < b.length) return -1;
+            if (a.length > b.length) return 1;
+            if (a < b) return -1;
+            if (a > b) return 1;
+            return 0;
+           }).join("")
+        console.log(s)
+       console.log(hashString(s)) // TODO initial hash to 0 as hex not only string...
         // sorting takes care of commutative and associative property
        return hashString(this._hashes.sort((a,b) => {
         if (a.length < b.length) return -1;
