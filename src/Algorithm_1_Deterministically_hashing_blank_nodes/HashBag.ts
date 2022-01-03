@@ -33,13 +33,15 @@ export default class HashBag {
      */
     value() {
         // sorting takes care of commutative and associative property
-        const sorted = this._hashes.sort((a, b) => {
-            if (a.length < b.length) return -1;
-            if (a.length > b.length) return 1;
-            if (a < b) return -1;
-            if (a > b) return 1;
-            return 0;
-        });
+        const sorted = this._hashes.sort(
+            (a, b) => {
+                if (a.length < b.length) return -1;
+                if (a.length > b.length) return 1;
+                return Buffer.compare(a, b);
+                //     if (a < b) return -1; // this does not work as expected
+                //     if (a > b) return 1; // this does not work as expected
+                //     return 0;
+            });
         const val = Buffer.concat(sorted)
         return hash(val);
     }

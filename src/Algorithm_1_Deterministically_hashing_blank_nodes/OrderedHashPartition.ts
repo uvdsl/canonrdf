@@ -40,13 +40,14 @@ export default class OrderedHashPartition {
             if (this._hash_to_b_ids[a.toString('hex')].length > this._hash_to_b_ids[b.toString('hex')].length) {
                 return 1;
             }
-            // return (a < b) ? -1 : 1; // use hash value as tie breaker 
+            // // return (a < b) ? -1 : 1; // use hash value as tie breaker 
             if (a.length < b.length) return -1;
             if (a.length > b.length) return 1;
-            return (a < b) ? -1 : 1; // equality cannot happen by definition
-            // if (a < b) return -1;
-            // if (a > b) return 1;
-            // return 0;
+            // return (a < b) ? -1 : 1; // equality cannot happen by definition
+            // // if (a < b) return -1; //this does not work as expected
+            // // if (a > b) return 1; // this does not work as expected
+            // // return 0;
+            return Buffer.compare(a, b)
         })
     }
 
@@ -77,6 +78,46 @@ export default class OrderedHashPartition {
             }
         }
         return undefined
+    }
+
+    // <p3>
+    /**
+     * checks the hash partition: true (Termination) if
+     * (i) the hash-based partition of terms does not change in an iteration, OR
+     * (ii) no two terms share a hash.
+     *  (∀x , y : hash_i [x] = hash_i [y] iff hash_{i−1}[x ] = hash_{i−1}[y]) or (∀x , y : hash_i [x] = hash_i [y] iff x = y)
+     * 
+     * I.e.:
+     * (i)  x and y should only be hashEqual if x and y were hashEqual in prev iteration otherwise return false
+     * (ii) x and y should only be hashEqual if x == y otherwise return false
+     * @param otherPartition {@link OrderedHashPartition} to compare to
+     * @return boolean
+     */
+    isStableComparedTo(otherPartition: OrderedHashPartition) {
+        // (ii) no two terms share a hash
+        if (this.isFine()) return true; // condition (ii)
+        // (i) hash based partitions do not change compared to the other partition
+        for (const BNs of Object.values(this._hash_to_b_ids)) {
+            if (!otherPartition.hasHashFor(BNs)) return false; // if there is some sub-partition B' of B that is not the same in the other partition (i.e. something has changed), return false
+        }
+        // if everything is partitoned in this partition as in the other partition then return true
+        return true;
+    }
+
+    /**
+     * Checks if the input array of blank node IDs has a common hash value.
+     * @param BNs the string ids of some blank nodes.
+     * @returns booelan, true if the blank nodes share a common hash value.
+     */
+    hasHashFor(BNs: string[]) {
+        if (BNs.length == 0) return false;
+        const assumedHash = this._b_id_to_hash[BNs[0]]
+        const hashBNs = this._hash_to_b_ids[assumedHash.toString('hex')]
+        if (BNs.length !== hashBNs.length) return false;
+        for (const bn of BNs) {
+            if (!hashBNs.includes(bn)) return false;
+        }
+        return true;
     }
 
     // /**

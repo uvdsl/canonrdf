@@ -11,8 +11,8 @@ describe('HashBag', () => {
         expect(input).to.deep.equal(target)
     });
     it('value()', () => {
-        const input = [Buffer.from('1E', 'hex'), Buffer.from('1E', 'hex'), Buffer.from('153B', 'hex'), Buffer.from('B9', 'hex'), Buffer.from('1F', 'hex')];
-        const sortedjoin = Buffer.from('1E1E1FB9153B', 'hex')
+        const input = [Buffer.from('153B', 'hex'), Buffer.from('C1', 'hex'), Buffer.from('1E', 'hex'), Buffer.from('1E', 'hex'), Buffer.from('B9', 'hex'),Buffer.from('153B', 'hex'), Buffer.from('1F', 'hex')];
+        const sortedjoin = Buffer.from('1E1E1FB9C1153B153B', 'hex')
         const current = new HashBag(input);
         const target = hash(sortedjoin);
         expect(current.value().equals(target)).to.be.true;

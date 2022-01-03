@@ -4,7 +4,7 @@ import { isoCanonicalise } from '../../src';
 
 import rewire from 'rewire';
 import { hashBNodes } from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs';
-import OrderedHashPartition from '../../src/Algorithm_3_Computing_an_iso-canonical_version_of_an_RDF_graph/OrderedHashPartition';
+import OrderedHashPartition from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/OrderedHashPartition';
 
 const isoCan_rewired = rewire('../../src/Algorithm_3_Computing_an_iso-canonical_version_of_an_RDF_graph/isoCanonicalising');
 const distinguish: (G: Store, b_id_to_hash: {
@@ -35,6 +35,7 @@ describe('isoCanonicalise()', () => {
     })
     it('results in a relabeld graph after distinguish', () => {
         // (Note: this is not ground truth/gold standard, I have no idea if the hashing was correct, but I assume so)
+        // (If you are comparing this to ihermann's implementation, differences in hashes stem from the usage of hashbag. I do reuse hashbags across iterations while hashing, ihermann doesnt)
         const data = `
              _:a <p> _:b .
 				_:b <p> _:c .
@@ -49,12 +50,12 @@ describe('isoCanonicalise()', () => {
         const quads = parser.parse(data)
         input.addQuads(quads);
         const target = new Set([
-            '_:467fc2816420be45ed00d5f65d8cd2b3',
-            '_:ad33dde6cf23e0119c1d67465a4f75cd',
-            '_:4d9962d5335797a88e52079a0a82653f',
-            '_:a64690185d4edab5a3aa2c287b3a16f7',
-            '_:6338ab136028b2b9c87943108f09c1c8',
-            '_:597a342f8f77fe3e61450d25238a35ed'
+            '_:8366093b238e871f2a9caed52d853f3a',
+            '_:e91985e34c8d5fce0436c2d9b613ebce',
+            '_:5d863db9e340b106d06f45d0091885fa',
+            '_:28dab46ab57827cbbaa8b8a524a49a32',
+            '_:3a2d93a3adcc926fb88fddfff3bd4128',
+            '_:7c555763308b1b619d5d9402f77db92a'
         ]);
         const h = isoCanonicalise(input);
         const current = new Set(h.getQuads(null, null, null, null).map(quad => {

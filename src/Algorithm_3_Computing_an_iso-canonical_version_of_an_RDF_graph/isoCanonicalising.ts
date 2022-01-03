@@ -1,7 +1,7 @@
 import { BlankNode, Quad, Store, Util as n3Util } from "n3";
 import { hashTuple, hashBNodes } from "../Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs";
 import { MARKER } from "../constants";
-import OrderedHashPartition from "./OrderedHashPartition";
+import OrderedHashPartition from "../Algorithm_1_Deterministically_hashing_blank_nodes/OrderedHashPartition";
 
 /**
 Page 22 of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
@@ -90,7 +90,7 @@ const distinguish = (G: Store, b_id_to_hash: { [key: string]: Buffer }, hashPart
     return G_lowest
 }
 
-
+// TODO Question to Aidan
 /**
  *  
  * @param G 

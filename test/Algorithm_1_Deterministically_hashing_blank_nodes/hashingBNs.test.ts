@@ -2,15 +2,15 @@ import { expect } from 'chai';
 import { BlankNode, Literal, NamedNode, Parser, Quad, Store } from 'n3';
 import { hashBNodes, hash, hashTuple } from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs';
 
-import rewire from 'rewire';
-import { EDGE_OUT, INITIAL_BN_HASH } from '../../src/constants';
+// import rewire from 'rewire';
+// import { EDGE_OUT, INITIAL_BN_HASH } from '../../src/constants';
 
-const hBNs_rewired = rewire('../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs');
-const isStable: (p: {
-    [key: string]: Buffer;
-}, p_prev: {
-    [key: string]: Buffer;
-}) => boolean = hBNs_rewired.__get__('isStable');
+// const hBNs_rewired = rewire('../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs');
+// const isStable: (p: {
+//     [key: string]: Buffer;
+// }, p_prev: {
+//     [key: string]: Buffer;
+// }) => boolean = hBNs_rewired.__get__('isStable');
 
 describe('hashBNodes()', () => {
     it('results in an emtpy blank node mapping for RDF graphs without blank nodes', () => {
@@ -103,33 +103,33 @@ describe('hashBNodes()', () => {
 });
 
 
-describe('isStable() => HashTable (bn_id_to_hash)', () => {
-    it('results in `true` when both inputs empty', () => {
-        const x: { [key: string]: Buffer } = {};
-        const y: { [key: string]: Buffer } = {};
-        expect(isStable(x, y)).to.be.true;
-    });
-    it('resutls in `true` when (i) the hash-based partition of terms does not change in an iteration', () => {
-        const x: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
-        const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
-        expect(isStable(x, y)).to.be.true;
-    });
-    it('resutls in `true` when (ii) no two terms share a hash', () => {
-        const x: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('cc') };
-        const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
-        expect(isStable(x, y)).to.be.true;
-    });
-    it('resutls in `false` when (i) the hash-based partition of terms does change in an iteration', () => {
-        const x: { [key: string]: Buffer } = { '1': Buffer.from('dd'), '2': Buffer.from('bb'), '3': Buffer.from('dd') };
-        const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('dd') };
-        expect(isStable(x, y)).to.be.false;
-    });
-    it('resutls in `false` when (ii) two terms share a hash', () => {
-        const x: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
-        const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('cc') };
-        expect(isStable(x, y)).to.be.false;
-    });
-});
+// describe('isStable() => HashTable (bn_id_to_hash)', () => {
+//     it('results in `true` when both inputs empty', () => {
+//         const x: { [key: string]: Buffer } = {};
+//         const y: { [key: string]: Buffer } = {};
+//         expect(isStable(x, y)).to.be.true;
+//     });
+//     it('resutls in `true` when (i) the hash-based partition of terms does not change in an iteration', () => {
+//         const x: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
+//         const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
+//         expect(isStable(x, y)).to.be.true;
+//     });
+//     it('resutls in `true` when (ii) no two terms share a hash', () => {
+//         const x: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('cc') };
+//         const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
+//         expect(isStable(x, y)).to.be.true;
+//     });
+//     it('resutls in `false` when (i) the hash-based partition of terms does change in an iteration', () => {
+//         const x: { [key: string]: Buffer } = { '1': Buffer.from('dd'), '2': Buffer.from('bb'), '3': Buffer.from('dd'), '4': Buffer.from('bb') };
+//         const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('dd'), '4': Buffer.from('bb') };
+//         expect(isStable(x, y)).to.be.false;
+//     });
+//     it('resutls in `false` when (ii) two terms share a hash', () => {
+//         const x: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
+//         const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('cc') };
+//         expect(isStable(x, y)).to.be.false;
+//     });
+// });
 
 
 

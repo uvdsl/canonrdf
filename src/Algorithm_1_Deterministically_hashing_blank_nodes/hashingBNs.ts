@@ -2,6 +2,7 @@ import { Term, Store, Util as n3Util } from 'n3';
 import { createHash } from 'crypto';
 import HashBag from './HashBag';
 import { INITIAL_BN_HASH, EDGE_OUT, EDGE_IN, HASH_ALGO } from '../constants';
+import OrderedHashPartition from './OrderedHashPartition';
 
 /**
 Page 16f. of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
@@ -41,9 +42,11 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
     const il_id_to_hash: { [key: string]: Buffer } = {}; // { IL.id : hashvalue} aka a `hash table` although not quite, IL do not need a second dim
     let b_id_to_hash: { [key: string]: Buffer } = {}; // { B.id : hashvalue} aka a  `hash table` although not quite, the second dimension is only created later
     const b_HashBags: { [key: string]: HashBag } = {}; // {B.id : HashBag Obj} // a hashbag for commutative and associative hashes of blank nodes 
+    // TODO Question to Aidan, hashbag carries hashes over? would need to if truely commutative and associative (but ihermann doesnt)
 
     // fill term id to hash mappings
     Object.values(IL).forEach(il => il_id_to_hash[il.id] = hash(Buffer.from(il.id))); // static hash based on the string of the term
+    // FIXME static hashes should also be initialisable from outside :) i.e. not to be recalculated everytime
     // START allow for init of blank node hashes as necessary for algo 3
     if (initialisedBlankNodeHashes === undefined) {
         Object.keys(B).forEach(b_id => {
@@ -59,14 +62,14 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
 
     // <p2>
     // let i = 0
-    let B_ids_to_hashes_prev: { [key: string]: Buffer }; // { term.id : hashvalue} aka a `hash partition` of the previous iteration
+    let b_ids_to_hashes_prev: { [key: string]: Buffer }; // { term.id : hashvalue} aka a `hash partition` of the previous iteration
     do {
         // i++;
-        B_ids_to_hashes_prev = b_id_to_hash;
+        b_ids_to_hashes_prev = Object.assign({}, b_id_to_hash);
         // for (b, p, o) ∈ G : b ∈ B do
         Object.values(B).forEach(b => {
-            G.getQuads(b, null, null, null).sort().forEach(quad => { // TODO sorting // TODO adjust for datasets : blank nodes are scoped within the graph...
-                const o_hash = (n3Util.isBlankNode(quad.object)) ? B_ids_to_hashes_prev[quad.object.id] : il_id_to_hash[quad.object.id]
+            G.getQuads(b, null, null, null).sort().forEach(quad => {  // .TODO adjust for datasets : blank nodes are scoped within the graph...
+                const o_hash = (n3Util.isBlankNode(quad.object)) ? b_ids_to_hashes_prev[quad.object.id] : il_id_to_hash[quad.object.id]
                 const p_hash = il_id_to_hash[quad.predicate.id]
                 const c = hashTuple(o_hash, p_hash, EDGE_OUT);
                 // B_ids_to_hashes[b.id] = hashBag(c, B_ids_to_hashes[b.id]); // (footnote 1)
@@ -75,8 +78,8 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
             // })
             // for (s, p, b) ∈ G : b ∈ B do
             // Object.values(B).forEach(b => {
-            G.getQuads(null, null, b, null).sort().forEach(quad => { // TODO sorting // TODO adjust for datasets : blank nodes are scoped within the graph...
-                const s_hash = (n3Util.isBlankNode(quad.subject)) ? B_ids_to_hashes_prev[quad.subject.id] : il_id_to_hash[quad.subject.id]
+            G.getQuads(null, null, b, null).sort().forEach(quad => {  // .TODO adjust for datasets : blank nodes are scoped within the graph...
+                const s_hash = (n3Util.isBlankNode(quad.subject)) ? b_ids_to_hashes_prev[quad.subject.id] : il_id_to_hash[quad.subject.id]
                 const p_hash = il_id_to_hash[quad.predicate.id]
                 const c = hashTuple(s_hash, p_hash, EDGE_IN);
                 // B_ids_to_hashes[b.id] = hashBag(c, B_ids_to_hashes[b.id]); // (footnote 1)
@@ -86,13 +89,12 @@ export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string
         // (footnote 1) 
         // in order to create a commutative and associative hash, we need an accumulator `HashBag` for each blanknode
         // (it is not possible to calculate a hash in such way in an iterative manner as it may appear from the listing in the paper)
-        Object.keys(B).forEach(b_id => {
-            b_id_to_hash[b_id] = b_HashBags[b_id].value();
-        })
+        Object.keys(B).forEach(b_id => b_id_to_hash[b_id] = b_HashBags[b_id].value());
         // </p2>
         // <p3>
         // until (∀x , y : hash_i [x] = hash_i [y] iff hash_{i−1}[x ] = hash_{i−1}[y]) or (∀x , y : hash_i [x ] = hash_i [y] iff x = y)
-    } while (!isStable(b_id_to_hash, B_ids_to_hashes_prev));
+        // FIXME fix this hack :)
+    } while (!new OrderedHashPartition(b_id_to_hash).isStableComparedTo(new OrderedHashPartition(b_ids_to_hashes_prev)));
     // </p3>
     return b_id_to_hash;
 }
@@ -132,33 +134,3 @@ export const hashTuple = (...data: Buffer[]) => {
     return hash(Buffer.concat(data));
 }
 
-// <p3>
-/**
- * checks the hash partition: true (Termination) if
- * (i) the hash-based partition of terms does not change in an iteration, OR
- * (ii) no two terms share a hash.
- *  (∀x , y : hash_i [x] = hash_i [y] iff hash_{i−1}[x ] = hash_{i−1}[y]) or (∀x , y : hash_i [x] = hash_i [y] iff x = y)
- * 
- * I.e.:
- * (i)  x and y should only be hashEqual if x and y were hashEqual in prev iteration otherwise return false
- * (ii) x and y should only be hashEqual if x == y otherwise return false
- */
-const isStable = (p: { [key: string]: Buffer }, p_prev: { [key: string]: Buffer }) => {
-    for (const x of Object.keys(p)) {
-        for (const y of Object.keys(p)) {
-            // // (i) the hash-based partition of terms does not change in an iteration
-            // // ∀x,y: hash_i [x] = hash_i [y] iff hash_{i−1}[x ] = hash_{i−1}[y]
-            // // i.e. if in prev it x and y hashEqual then in this it they must be hashEqual as well, otherwise return false
-            // // i.e. x and y should only be hashEqual if x and y were hashEqual in prev iteration otherwise return false
-            // // i.e. if hash not stable
-            // if ((p[x] === p[y] && p_prev[x] !== p_prev[y]) && // OR -> negate to AND
-            //     //(ii) no two terms share a hash.
-            //     // ∀x,y: hash_i [x] = hash_i [y] iff x = y)
-            //     // i.e. x and y should only be hashEqual if x == y otherwise return false
-            //     (p[x] === p[y] && x !== y)) return false;
-            // if (p[x] === p[y] && /* iff */ (p_prev[x] !== p_prev[y] && x !== y)) return false; // NotTODO proper hash compare, should be ok.
-            if (p[x].equals(p[y]) && /* iff */ (!p_prev[x].equals(p_prev[y]) && x !== y)) return false;
-        }
-    }
-    return true
-}
