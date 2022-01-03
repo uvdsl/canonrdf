@@ -102,38 +102,6 @@ describe('hashBNodes()', () => {
 
 });
 
-
-// describe('isStable() => HashTable (bn_id_to_hash)', () => {
-//     it('results in `true` when both inputs empty', () => {
-//         const x: { [key: string]: Buffer } = {};
-//         const y: { [key: string]: Buffer } = {};
-//         expect(isStable(x, y)).to.be.true;
-//     });
-//     it('resutls in `true` when (i) the hash-based partition of terms does not change in an iteration', () => {
-//         const x: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
-//         const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
-//         expect(isStable(x, y)).to.be.true;
-//     });
-//     it('resutls in `true` when (ii) no two terms share a hash', () => {
-//         const x: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('cc') };
-//         const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
-//         expect(isStable(x, y)).to.be.true;
-//     });
-//     it('resutls in `false` when (i) the hash-based partition of terms does change in an iteration', () => {
-//         const x: { [key: string]: Buffer } = { '1': Buffer.from('dd'), '2': Buffer.from('bb'), '3': Buffer.from('dd'), '4': Buffer.from('bb') };
-//         const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('dd'), '4': Buffer.from('bb') };
-//         expect(isStable(x, y)).to.be.false;
-//     });
-//     it('resutls in `false` when (ii) two terms share a hash', () => {
-//         const x: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('aa') };
-//         const y: { [key: string]: Buffer } = { '1': Buffer.from('aa'), '2': Buffer.from('bb'), '3': Buffer.from('cc') };
-//         expect(isStable(x, y)).to.be.false;
-//     });
-// });
-
-
-
-
 describe('hash()', () => {
     it('results in a correct md5 hash as hex string', () => {
         const input = Buffer.from("http://ex.org");

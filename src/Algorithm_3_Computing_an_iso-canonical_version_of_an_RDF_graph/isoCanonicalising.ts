@@ -90,7 +90,7 @@ const distinguish = (G: Store, b_id_to_hash: { [key: string]: Buffer }, hashPart
     return G_lowest
 }
 
-// TODO Question to Aidan
+// TODO Question to Aidan, ordering??
 /**
  *  
  * @param G 
