@@ -1,5 +1,7 @@
-import { Store,  Util as n3Util  } from "n3";
+import { Hash } from "crypto";
+import { Store, Util as n3Util } from "n3";
 import { hashBNodes } from "../Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs";
+import HashTable from "../Algorithm_1_Deterministically_hashing_blank_nodes/HashTable";
 
 /**
  * Page 19f. https://aidanhogan.com/docs/rdf-canonicalisation.pdf
@@ -19,10 +21,19 @@ import { hashBNodes } from "../Algorithm_1_Deterministically_hashing_blank_nodes
  * @returns an Object `B_ids_to_hashes: { [key: string]: string }`
  */
 export const hashBNodesPerSplit = (G: Store) => {
-    let B_ids_to_hashes: { [key: string]: Buffer } = {};
+    const b_hashes = new HashTable({});
+    const il_hashes = new HashTable({});
     const G_split = split(G);
-    G_split.forEach(G_i => Object.assign(B_ids_to_hashes, hashBNodes(G_i)));
-    return B_ids_to_hashes;
+    for (const G_i of G_split) {
+        const { b_hash_table, il_hash_table } = hashBNodes(G_i);
+        for (const b_id of Object.keys(b_hash_table.getBIdToHashMapping())) {
+            b_hashes.setHash(b_id, b_hash_table.getHash(b_id));
+        }
+        for (const il_id of Object.keys(il_hash_table.getBIdToHashMapping())) {
+            il_hashes.setHash(il_id, il_hash_table.getHash(il_id));
+        }
+    }
+    return { b_hash_table: b_hashes, il_hash_table: il_hashes };
 }
 
 /**
@@ -51,7 +62,7 @@ const split = (G: Store) => {
 
         if (s_is_bn && !o_is_bn) {
             // subject is blank node, object is not
-            if(id_to_split[quad.subject.id] == -1 ) {
+            if (id_to_split[quad.subject.id] == -1) {
                 // yet unseen blank node
                 id_to_split[quad.subject.id] = graphs.length;
                 graphs.push(new Store([quad]));
@@ -74,7 +85,7 @@ const split = (G: Store) => {
 
         //  if (s_is_bn && o_is_bn) {
         // both are blank nodes
-       
+
         if (id_to_split[quad.subject.id] == -1 && id_to_split[quad.object.id] == -1) {
             // yet unseen blank nodes
             id_to_split[quad.subject.id] = graphs.length;
@@ -89,7 +100,7 @@ const split = (G: Store) => {
             return
         }
         if (id_to_split[quad.subject.id] == -1 && id_to_split[quad.object.id] != -1) {
-             // have seen object before (i.e. is connected to something)
+            // have seen object before (i.e. is connected to something)
             id_to_split[quad.subject.id] = id_to_split[quad.object.id];
             graphs[id_to_split[quad.object.id]].addQuad(quad);
             return
