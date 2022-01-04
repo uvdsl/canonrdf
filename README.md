@@ -11,6 +11,7 @@ Since I did not feel comfortable messing around in code I do not understand, I e
 
 For the sake of interoperability, I would also like to
 make this implemenation have the same output as the original Java implementation on the same inputs.
+However, there are alot of open questions regarding an exact implementation, e.g. ordering of graphs, carry-over of hash bags, hashing tuples, etc.
 
 ---
 ### [References](id:refs)
