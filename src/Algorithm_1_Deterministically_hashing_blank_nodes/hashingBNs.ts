@@ -2,7 +2,10 @@ import { Term, Store, Util as n3Util } from 'n3';
 import { createHash } from 'crypto';
 import HashBag from './HashBag';
 import { INITIAL_BN_HASH, EDGE_OUT, EDGE_IN, HASH_ALGO } from '../constants';
-import OrderedHashPartition from './OrderedHashPartition';
+import HashTable from './HashTable';
+
+
+
 
 /**
 Page 16f. of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
@@ -30,76 +33,94 @@ changes in every iteration. The loop terminates when either (i) the hash-based p
 terms does not change in an iteration, or (ii) no two terms share a hash.
  
  * @param G n3.Store, the graph
- * @returns an Object `B_ids_to_hashes: { [key: string]: string }`
+ * @returns b_hash_table, a {@link HashTable} aka. unordered `HashPartition`
 */
-export const hashBNodes = (G: Store, initialisedBlankNodeHashes?: { [key: string]: Buffer }) => {
+export const hashBNodes = (G: Store, initOptions?: { b_hash_table: HashTable, il_hash_table: HashTable }) => {
     // <p1>
-    // get the terms of the graph:
-    const { IL, B } = getTerms(G);// IL (set of IRIs and Literals), B (set of BlankNodes), or rather mapping id to term.
-    if (Object.keys(B).length == 0) return {}; // if there is no blank nodes. stop.
-
-    // init hash mappings
-    const il_id_to_hash: { [key: string]: Buffer } = {}; // { IL.id : hashvalue} aka a `hash table` although not quite, IL do not need a second dim
-    let b_id_to_hash: { [key: string]: Buffer } = {}; // { B.id : hashvalue} aka a  `hash table` although not quite, the second dimension is only created later
-    const b_HashBags: { [key: string]: HashBag } = {}; // {B.id : HashBag Obj} // a hashbag for commutative and associative hashes of blank nodes 
-    // TODO Question to Aidan, hashbag carries hashes over? would need to if truely commutative and associative (but ihermann doesnt)
-
-    // fill term id to hash mappings
-    Object.values(IL).forEach(il => il_id_to_hash[il.id] = hash(Buffer.from(il.id))); // static hash based on the string of the term
-    // FIXME static hashes should also be initialisable from outside :) i.e. not to be recalculated everytime
-    // START allow for init of blank node hashes as necessary for algo 3
-    if (initialisedBlankNodeHashes === undefined) {
-        Object.keys(B).forEach(b_id => {
-            b_id_to_hash[b_id] = INITIAL_BN_HASH;
-            b_HashBags[b_id] = new HashBag([INITIAL_BN_HASH]);
-        }); // initial hash
-    } else {
-        b_id_to_hash = initialisedBlankNodeHashes;
-        Object.keys(B).forEach(b_id => b_HashBags[b_id] = new HashBag([b_id_to_hash[b_id]])); // initial hash
-    }
-    //END allow for init of blank node hashes as necessary for algo 3
+    let {
+        il_hash_table, // hash table for iris and literals 
+        b_hash_table,  // hash table for blank nodes
+        b_hash_bags  // a simple mapping from blank node id to {@link HashBag}
+    } = initHashes(G, initOptions);
     // </p1>
+    if (Object.keys(b_hash_bags).length == 0) return {b_hash_table, il_hash_table}; // no blank nodes.
 
     // <p2>
-    // let i = 0
-    let b_ids_to_hashes_prev: { [key: string]: Buffer }; // { term.id : hashvalue} aka a `hash partition` of the previous iteration
+    let b_hash_table_prev: HashTable;
     do {
-        // i++;
-        b_ids_to_hashes_prev = Object.assign({}, b_id_to_hash);
+        b_hash_table_prev = b_hash_table.clone()
         // for (b, p, o) ∈ G : b ∈ B do
-        Object.values(B).forEach(b => {
+        Object.keys(b_hash_bags).forEach(b => {
             G.getQuads(b, null, null, null).sort().forEach(quad => {  // .TODO adjust for datasets : blank nodes are scoped within the graph...
-                const o_hash = (n3Util.isBlankNode(quad.object)) ? b_ids_to_hashes_prev[quad.object.id] : il_id_to_hash[quad.object.id]
-                const p_hash = il_id_to_hash[quad.predicate.id]
+                const o_hash = (n3Util.isBlankNode(quad.object)) ? b_hash_table_prev.getHash(quad.object.id) : il_hash_table.getHash(quad.object.id)
+                const p_hash = il_hash_table.getHash(quad.predicate.id)
                 const c = hashTuple(o_hash, p_hash, EDGE_OUT);
                 // B_ids_to_hashes[b.id] = hashBag(c, B_ids_to_hashes[b.id]); // (footnote 1)
-                b_HashBags[b.id].add(c); // (footnote 1)
+                b_hash_bags[b].add(c); // (footnote 1)
             })
             // })
             // for (s, p, b) ∈ G : b ∈ B do
             // Object.values(B).forEach(b => {
             G.getQuads(null, null, b, null).sort().forEach(quad => {  // .TODO adjust for datasets : blank nodes are scoped within the graph...
-                const s_hash = (n3Util.isBlankNode(quad.subject)) ? b_ids_to_hashes_prev[quad.subject.id] : il_id_to_hash[quad.subject.id]
-                const p_hash = il_id_to_hash[quad.predicate.id]
+                const s_hash = (n3Util.isBlankNode(quad.subject)) ? b_hash_table_prev.getHash(quad.subject.id) : il_hash_table.getHash(quad.subject.id)
+                const p_hash = il_hash_table.getHash(quad.predicate.id)
                 const c = hashTuple(s_hash, p_hash, EDGE_IN);
                 // B_ids_to_hashes[b.id] = hashBag(c, B_ids_to_hashes[b.id]); // (footnote 1)
-                b_HashBags[b.id].add(c); // (footnote 1)
+                b_hash_bags[b].add(c); // (footnote 1)
             })
         })
         // (footnote 1) 
         // in order to create a commutative and associative hash, we need an accumulator `HashBag` for each blanknode
         // (it is not possible to calculate a hash in such way in an iterative manner as it may appear from the listing in the paper)
-        Object.keys(B).forEach(b_id => b_id_to_hash[b_id] = b_HashBags[b_id].value());
+        Object.keys(b_hash_bags).forEach(b_id => b_hash_table.setHash(b_id, b_hash_bags[b_id].value()));
         // </p2>
         // <p3>
         // until (∀x , y : hash_i [x] = hash_i [y] iff hash_{i−1}[x ] = hash_{i−1}[y]) or (∀x , y : hash_i [x ] = hash_i [y] iff x = y)
-        // FIXME fix this hack :)
-    } while (!new OrderedHashPartition(b_id_to_hash).isStableComparedTo(new OrderedHashPartition(b_ids_to_hashes_prev)));
+    } while (!b_hash_table.isStableComparedTo(b_hash_table_prev));
     // </p3>
-    return b_id_to_hash;
+    return {b_hash_table, il_hash_table};
 }
 
+/**
+ * Initialises the hash tables and hash bags for the terms of G.
+ * When provided, initOptions are used.
+ * 
+ * @param G graph 
+ * @param initOptions?: { b_hash_table: HashTable, il_hash_table: HashTable }
+ * @returns  \{ il_hash_table, b_hash_table, b_hash_bags \}
+ */
+const initHashes = (G: Store, initOptions?: { b_hash_table: HashTable, il_hash_table: HashTable }) => {
+    let il_hash_table = new HashTable({});
+    let b_hash_table = new HashTable({});
+    let b_hash_bags: { [key: string]: HashBag } = {} // {B.id : HashBag Obj} 
+    // a hashbag for commutative and associative hashes of blank nodes
+    // TODO Question to Aidan, hashbag carries hashes over? would need to if truely commutative and associative (but ihermann doesnt), iherman reassigns emtpy bag in each do-iteration
 
+    if (initOptions) {
+        il_hash_table = initOptions.il_hash_table;
+        b_hash_table = initOptions.b_hash_table;
+        Object.keys(b_hash_table.getBIdToHashMapping()).forEach(b_id => b_hash_bags[b_id] = new HashBag([b_hash_table.getHash(b_id)]))
+        return { il_hash_table, b_hash_table, b_hash_bags }
+    }
+
+    // start from scratch
+    // get the terms of the graph:
+    const { IL, B } = getTerms(G);// IL (set of IRIs and Literals), B (set of BlankNodes), or rather mapping id to term.
+    // IL hashes
+    Object.values(IL).forEach(il => il_hash_table.setHash(il.id, hash(Buffer.from(il.id)))); // static hash based on the string of the term
+    // B hashes
+    Object.keys(B).forEach(b_id => {
+        b_hash_table.setHash(b_id, INITIAL_BN_HASH);
+        b_hash_bags[b_id] = new HashBag([INITIAL_BN_HASH]);
+    });
+    return { il_hash_table, b_hash_table, b_hash_bags }
+}
+
+/**
+ * Get the terms of graph G.
+ * @param G graph (n3 Store)
+ * @returns \{ IL: { [key: string]: Term }, B: { [key: string]: Term } \}
+ */
 const getTerms = (G: Store) => {
     // a map from term to id
     let IL: { [key: string]: Term } = {}; // the set of IRIs and Literals { IL.id : term}
@@ -107,17 +128,6 @@ const getTerms = (G: Store) => {
     let uniq_terms = new Set(G.getQuads(null, null, null, null).map(quad => [quad.subject, quad.predicate, quad.object]).flat()); // TODO adjust for datasets?
     uniq_terms.forEach(term => (n3Util.isBlankNode(term)) ? B[term.id] = term : IL[term.id] = term);
     return { IL, B }
-}
-
-/**
- * Simply hashes some data
- * (aka produces a color)
- * 
- * @param buffer binary data to hash
- * @returns hash of input as Buffer
- */
-export const hash = (buffer: Buffer) => {
-    return createHash(HASH_ALGO).update(buffer).digest();
 }
 
 /**
@@ -134,3 +144,13 @@ export const hashTuple = (...data: Buffer[]) => {
     return hash(Buffer.concat(data));
 }
 
+/**
+ * Simply hashes some data
+ * (aka produces a color)
+ * 
+ * @param buffer binary data to hash
+ * @returns hash of input as Buffer
+ */
+export const hash = (buffer: Buffer) => {
+    return createHash(HASH_ALGO).update(buffer).digest();
+}

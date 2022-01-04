@@ -4,12 +4,11 @@ import { isoCanonicalise } from '../../src';
 
 import rewire from 'rewire';
 import { hashBNodes } from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs';
-import OrderedHashPartition from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/OrderedHashPartition';
+import OrderedHashPartition from '../../src/Algorithm_3_Computing_an_iso-canonical_version_of_an_RDF_graph/OrderedHashPartition';
+import HashTable from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/HashTable';
 
 const isoCan_rewired = rewire('../../src/Algorithm_3_Computing_an_iso-canonical_version_of_an_RDF_graph/isoCanonicalising');
-const distinguish: (G: Store, b_id_to_hash: {
-    [key: string]: Buffer;
-}, hashPartition: OrderedHashPartition, G_lowest?: Store) => Store<Quad, Quad, Quad, Quad> = isoCan_rewired.__get__('distinguish');
+const distinguish: (G: Store, hashPartition: OrderedHashPartition, il_hash_table: HashTable, G_lowest?: Store) => Store<Quad, Quad, Quad, Quad> = isoCan_rewired.__get__('distinguish');
 const isLowerOrderThan: (G: Store, H: Store) => boolean = isoCan_rewired.__get__('isLowerOrderThan');
 
 
@@ -85,12 +84,12 @@ describe('distinguish()', () => {
         const quads = parser.parse(data)
         graph.addQuads(quads);
 
-        const b_id_to_hash = hashBNodes(graph);
-        // console.log(b_id_to_hash) // => 6125229b7e32f569124d2aa34e6a299a
-        const hashPartition = new OrderedHashPartition(b_id_to_hash)
+        const { b_hash_table, il_hash_table } = hashBNodes(graph);
+        // console.log(b_id_to_hash) // => 8a38955e084bf72bacbffbfb583a67e3
+        const hashPartition = new OrderedHashPartition(b_hash_table)
 
         // distinguish(G: Store, b_id_to_hash: { [key: string]: string }, hashPartition: OrderedHashPartition, G_lowest?: Store) 
-        const h = distinguish(graph, b_id_to_hash, hashPartition)
+        const h = distinguish(graph, hashPartition, il_hash_table)
         const c = new Set(h.getQuads(null, null, null, null).map(quad => {
             const result = []
             if (n3Util.isBlankNode(quad.subject)) result.push(quad.subject.id)

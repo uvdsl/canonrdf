@@ -1,7 +1,8 @@
 import { BlankNode, Quad, Store, Util as n3Util } from "n3";
 import { hashTuple, hashBNodes } from "../Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs";
+import HashTable from "../Algorithm_1_Deterministically_hashing_blank_nodes/HashTable";
 import { MARKER } from "../constants";
-import OrderedHashPartition from "../Algorithm_1_Deterministically_hashing_blank_nodes/OrderedHashPartition";
+import OrderedHashPartition from "./OrderedHashPartition";
 
 /**
 Page 22 of https://aidanhogan.com/docs/rdf-canonicalisation.pdf
@@ -18,32 +19,31 @@ initial hashes and return the result as the iso-canonical version.
  */
 export const isoCanonicalise = (G: Store) => {
     // <p1>
-    // {b.id: hex}
-    const b_id_to_hash = hashBNodes(G) // or hashBNodesPerSplit(G)
-    const hashPartition = new OrderedHashPartition(b_id_to_hash)
+    const { b_hash_table, il_hash_table } = hashBNodes(G) // or hashBNodesPerSplit(G)
     // </p1>
     // <p2>
-    if (hashPartition.isFine()) {
+    if (b_hash_table.isFine()) {
         // we are done: generate blank node labels from hash
-        return relabel(G, b_id_to_hash);
+        return relabel(G, b_hash_table);
     }
     // </p2>
     // distinguish
-    return distinguish(G, b_id_to_hash, hashPartition);
+    const orderedHashPartition = new OrderedHashPartition(b_hash_table)
+    return distinguish(G, orderedHashPartition, il_hash_table);
 }
 
 
 /**
  * Relabels the blank nodes of G according to the input mapping.
  * @param G n3.Store, the graph
- * @param B_id_to_hashes mapping from BlankNode id to its hash
+ * @param b_hash_table {@link HashTable}
  * @returns relabeld graph
  */
-const relabel = (G: Store, b_id_to_hash: { [key: string]: Buffer }) => {
+const relabel = (G: Store, b_hash_table: HashTable) => {
     return new Store(G.getQuads(null, null, null, null).map(quad => {
-        const s = (n3Util.isBlankNode(quad.subject)) ? new BlankNode(b_id_to_hash[quad.subject.id].toString('hex')) : quad.subject;
+        const s = (n3Util.isBlankNode(quad.subject)) ? new BlankNode(b_hash_table.getHash(quad.subject.id).toString('hex')) : quad.subject;
         const p = quad.predicate
-        const o = (n3Util.isBlankNode(quad.object)) ? new BlankNode(b_id_to_hash[quad.object.id].toString('hex')) : quad.object;
+        const o = (n3Util.isBlankNode(quad.object)) ? new BlankNode(b_hash_table.getHash(quad.object.id).toString('hex')) : quad.object;
         const g = quad.graph
         return new Quad(s, p, o, g)
     }))
@@ -70,21 +70,21 @@ guished recursively.
  * @param G_lowest 
  * @returns 
  */
-const distinguish = (G: Store, b_id_to_hash: { [key: string]: Buffer }, hashPartition: OrderedHashPartition, G_lowest?: Store) => {
+const distinguish = (G: Store, hashPartition: OrderedHashPartition, il_hash_table: HashTable, G_lowest?: Store) => {
     // hashPartition is already ordered.
-    const { lowestNonTrivialHash, lowestNonTrivialBNs } = hashPartition.getLowestNonTrivial()
+    const { lowestNonTrivialBNs } = hashPartition.getLowestNonTrivial()
     for (const b_id of lowestNonTrivialBNs) {
-        const b_id_to_hash_tick = Object.assign({}, b_id_to_hash) //clone
-        b_id_to_hash_tick[b_id] = hashTuple(b_id_to_hash_tick[b_id], MARKER)
-        const b_id_to_hash_double_tick = hashBNodes(G, b_id_to_hash_tick) // or hashBNodesPerSplit(G)
-        const hashPartition_tick = new OrderedHashPartition(b_id_to_hash_double_tick)
-        if (hashPartition_tick.isFine()) {
-            const G_c = relabel(G, b_id_to_hash_double_tick)
+        const hash_table_prime = hashPartition.clone() //clone
+        hash_table_prime.setHash(b_id, hashTuple(hash_table_prime.getHash(b_id), MARKER))
+        const { b_hash_table: hash_table_double_prime } = hashBNodes(G, { b_hash_table: hash_table_prime, il_hash_table }) // or hashBNodesPerSplit(G)
+        const hashPartition_prime = new OrderedHashPartition(hash_table_double_prime)
+        if (hashPartition_prime.isFine()) {
+            const G_c = relabel(G, hash_table_double_prime)
             if (G_lowest === undefined || isLowerOrderThan(G_c, G_lowest)) {
                 G_lowest = G_c
             }
         } else {
-            G_lowest = distinguish(G, b_id_to_hash_double_tick, hashPartition_tick, G_lowest)
+            G_lowest = distinguish(G, hashPartition_prime, il_hash_table, G_lowest)
         }
     }
     return G_lowest

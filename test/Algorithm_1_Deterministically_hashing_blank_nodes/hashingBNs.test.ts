@@ -1,22 +1,77 @@
 import { expect } from 'chai';
 import { BlankNode, Literal, NamedNode, Parser, Quad, Store } from 'n3';
 import { hashBNodes, hash, hashTuple } from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs';
+import HashTable from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/HashTable';
 
-// import rewire from 'rewire';
-// import { EDGE_OUT, INITIAL_BN_HASH } from '../../src/constants';
+import rewire from 'rewire';
+import HashBag from '../../src/Algorithm_1_Deterministically_hashing_blank_nodes/HashBag';
+import { INITIAL_BN_HASH } from '../../src/constants';
 
-// const hBNs_rewired = rewire('../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs');
-// const isStable: (p: {
-//     [key: string]: Buffer;
-// }, p_prev: {
-//     [key: string]: Buffer;
-// }) => boolean = hBNs_rewired.__get__('isStable');
+const hBNs_rewired = rewire('../../src/Algorithm_1_Deterministically_hashing_blank_nodes/hashingBNs');
+const initHashes: (G: Store, initOptions?: {
+    b_hash_table: HashTable;
+    il_hash_table: HashTable;
+}) => {
+    il_hash_table: HashTable;
+    b_hash_table: HashTable;
+    b_hash_bags: {
+        [key: string]: HashBag;
+    };
+} = hBNs_rewired.__get__('initHashes');
+
+describe('hash()', () => {
+    it('results in a correct md5 hash as hex string', () => {
+        const input = Buffer.from("http://ex.org");
+        const target = Buffer.from("3b1aca89d6c6ba66eff475ac85347ec6", "hex")
+        expect(hash(input).equals(target)).to.be.true;
+    });
+});
+
+describe('hashTuple()', () => {
+    it('results in a correct md5 hash as hex string', () => {
+        const input0 = Buffer.from("http://")
+        const input1 = Buffer.from("ex.org")
+        const target = Buffer.from("3b1aca89d6c6ba66eff475ac85347ec6", "hex")
+        expect(hashTuple(input0, input1)).to.deep.equal(target);
+    });
+    it('results in a different hash if order is switched', () => {
+        const input0 = Buffer.from("http://")
+        const input1 = Buffer.from("ex.org")
+        const target = Buffer.from("367756bce0ad92449c17eea113a1a713", "hex")
+        expect(hashTuple(input1, input0)).to.deep.equal(target);
+    });
+});
+
+describe('initHashes()', () => {
+    it('results in fresh IL hashes when no initOptions are provided', () => {
+        const graph = new Store([
+            new Quad(new BlankNode('bn'), new NamedNode('#p'), new Literal('"o"')),
+        ]);
+        const { il_hash_table, b_hash_table, b_hash_bags } = initHashes(graph)
+        expect(Object.keys(il_hash_table.getBIdToHashMapping()).length).to.equal(2);
+    });
+    it('results in fresh B hashes when no initOptions are provided', () => {
+        const graph = new Store([
+            new Quad(new BlankNode('bn'), new NamedNode('#p'), new Literal('"o"')),
+        ]);
+        const { il_hash_table, b_hash_table, b_hash_bags } = initHashes(graph)
+        expect(b_hash_table.getHash('_:bn')).to.equal(INITIAL_BN_HASH);
+    });
+    it('results in fresh B HashBags hashes when no initOptions are provided', () => {
+        const graph = new Store([
+            new Quad(new BlankNode('bn'), new NamedNode('#p'), new Literal('"o"')),
+        ]);
+        const { il_hash_table, b_hash_table, b_hash_bags } = initHashes(graph)
+        expect(Object.keys(b_hash_bags)[0]).to.equal('_:bn')
+    });
+    
+});
 
 describe('hashBNodes()', () => {
     it('results in an emtpy blank node mapping for RDF graphs without blank nodes', () => {
         const graph = new Store([new Quad(new NamedNode('#s'), new NamedNode('#p'), new Literal("o"))]);
-        const target: { [key: string]: Buffer } = {};
-        const current = hashBNodes(graph);
+        const target = new HashTable({})
+        const { b_hash_table: current } = hashBNodes(graph);
         expect(current).to.deep.equal(target);
     });
     it('takes an outgoing edge', () => {
@@ -43,8 +98,8 @@ describe('hashBNodes()', () => {
         // const bag_buffer = Buffer.concat([initial_hash,edge_hash])
         // // hash bag value:  "4824c3ffd7e04439c13a1e31c656d239"
         // console.log(bag_buffer, hash(bag_buffer))
-        const target: { [key: string]: Buffer } = { '_:bn': Buffer.from('4824c3ffd7e04439c13a1e31c656d239', 'hex') };
-        const current = hashBNodes(graph);
+        const target = new HashTable({ '_:bn': Buffer.from('4824c3ffd7e04439c13a1e31c656d239', 'hex') });
+        const { b_hash_table: current } = hashBNodes(graph);
         expect(current).to.deep.equal(target);
     });
     it('takes an incoming edge ', () => {
@@ -63,8 +118,8 @@ describe('hashBNodes()', () => {
         // const bag_buffer = Buffer.concat([INITIAL_BN_HASH,edge_hash])
         // const bag_hash = hash(bag_buffer)
         // console.log(bag_hash)
-        const target: { [key: string]: Buffer } = { '_:bn': Buffer.from('4d0810fe2dafa496ccb4a683b55b0924', 'hex') };
-        const current = hashBNodes(graph);
+        const target = new HashTable({ '_:bn': Buffer.from('4d0810fe2dafa496ccb4a683b55b0924', 'hex') });
+        const { b_hash_table: current } = hashBNodes(graph);
         expect(current).to.deep.equal(target);
     });
     it('takes incoming and outgoing edges ', () => {
@@ -77,8 +132,8 @@ describe('hashBNodes()', () => {
         // hash bag string:     "00000000000000000000000000000000b39bf75b48303377700fcd1422df7b5b46221114a48453e4165374c5ca2cacc5"
         // console.log(hash(Buffer.from('0000000000000000000000000000000046221114a48453e4165374c5ca2cacc5b39bf75b48303377700fcd1422df7b5b','hex')))
         // hash bag value:      "ee150da78d2b58fb4e40af496ed70ba5"
-        const target: { [key: string]: Buffer } = { '_:bn': Buffer.from('ee150da78d2b58fb4e40af496ed70ba5', 'hex') };
-        const current = hashBNodes(graph);
+        const target = new HashTable({ '_:bn': Buffer.from('ee150da78d2b58fb4e40af496ed70ba5', 'hex') });
+        const { b_hash_table: current } = hashBNodes(graph);
         expect(current).to.deep.equal(target);
     });
     it('results in equal hashes for all BNs', () => {
@@ -95,32 +150,10 @@ describe('hashBNodes()', () => {
         const parser = new Parser();
         const quads = parser.parse(ttl)
         graph.addQuads(quads);
-        const current = hashBNodes(graph);
-        const hvalues = new Set(Object.values(current).map(buf => buf.toString('hex')))
+        const { b_hash_table: current } = hashBNodes(graph);
+        const hvalues = new Set(Object.keys(current.getHashToBIdsMapping()))
         expect(hvalues.size).to.equal(1);  // 8a38955e084bf72bacbffbfb583a67e3
     })
 
 });
 
-describe('hash()', () => {
-    it('results in a correct md5 hash as hex string', () => {
-        const input = Buffer.from("http://ex.org");
-        const target = Buffer.from("3b1aca89d6c6ba66eff475ac85347ec6", "hex")
-        expect(hash(input).equals(target)).to.be.true;
-    });
-});
-
-describe('hashTuple()', () => {
-    it('results in a correct md5 hash as hex string', () => {
-        const input0 = Buffer.from("http://")
-        const input1 = Buffer.from("ex.org")
-        const target = Buffer.from("3b1aca89d6c6ba66eff475ac85347ec6", "hex")
-        expect(hashTuple(input0, input1)).to.deep.equal(target);
-    });
-    it('results in a different hash if order is switched', () => {
-        const input0 = Buffer.from("http://")
-        const input1 = Buffer.from("ex.org")
-        const target = Buffer.from("367756bce0ad92449c17eea113a1a713", "hex")
-        expect(hashTuple(input1, input0)).to.deep.equal(target);
-    });
-});
