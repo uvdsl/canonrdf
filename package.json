@@ -1,6 +1,6 @@
 {
   "name": "canonrdf",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "This library provides methods for canonicalising RDF.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
