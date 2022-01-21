@@ -22,7 +22,7 @@ npm install canonrdf --save
 ```
 ---
 ### Usage
-```
+```js
 const { isoCanonicalise } = require("canonrdf");
 const { Store, Parser } = require("n3");
 
