@@ -60,3 +60,24 @@ Technically, they do not have to be carried over at all (I think) but it is just
 
 ### (6) Ordering of Graphs
 What is the ordering of graphs? What is the defining property? Or in other words, what should my function `isLowerOrderThan(.)` check?
+
+---
+
+### (7) Dataset Support
+The semantic to apply to RDF datasets would needed to be decided (at least to some extent, I think).
+For more details see [W3C Working Group Note 25 February 2014](https://www.w3.org/TR/rdf11-datasets/) by Antoine Zimmermann.
+For example, it needs to be decided if blank nodes are scoped to a named graph or not. 
+According to the [W3C Recommendation 25 February 2014](https://www.w3.org/TR/rdf11-concepts/#section-dataset), blank nodes __can__ be shared across graphs within a dataset.  
+Personally, I am not too happy with this ambiguity. B
+ut an implementation could also allow for different kinds of dataset semantics to be applied with the algorithm.
+
+---
+
+### (8) RDF-star Support
+
+"RDF-star extends RDF with a convenient way to make statements about other statements" (from the [Draft Community Group Report 07 January 2022](https://w3c.github.io/rdf-star/cg-spec/editors_draft.html)) .
+As one possible use-case for this algorithm is the calculation of a message digest and (potentially) a subsquent digital signature, it may be necessary to specify the triples processed to derive the calculated hash (or signature). 
+RDF-star provides one possible way of doing so, __without asserting said triples__. 
+I'd argue that it is not up to a hash or signature to assert the truth-value of triples processed. 
+So, I think that general support for RDF-star would be beneficial.
+And other use-cases for this algorithm on RDF-star may exist, e.g. versioning of publication meta-data.
