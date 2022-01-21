@@ -28,7 +28,7 @@ const { Store, Parser } = require("n3");
 
 // the graph to relabel
 const data = `
-                _:a <p> _:b .
+				_:a <p> _:b .
 				_:b <p> _:c .
 				_:c <p> _:a .
 				_:x <p> _:y .
