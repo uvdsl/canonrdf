@@ -94,7 +94,7 @@ const initHashes = (G: Store, initOptions?: { b_hash_table: HashTable, il_hash_t
     let b_hash_table = new HashTable({});
     let b_hash_bags: { [key: string]: HashBag } = {} // {B.id : HashBag Obj} 
     // a hashbag for commutative and associative hashes of blank nodes
-    // TODO Question to Aidan, hashbag carries hashes over? would need to if truely commutative and associative (but ihermann doesnt), iherman reassigns emtpy bag in each do-iteration
+    // TODO Question to Aidan, hashbag carries hashes over? would need to if truely commutative and associative (but iherman doesnt), iherman reassigns emtpy bag in each do-iteration
 
     if (initOptions) {
         il_hash_table = initOptions.il_hash_table;

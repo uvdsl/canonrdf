@@ -34,7 +34,7 @@ describe('isoCanonicalise()', () => {
     })
     it('results in a relabeld graph after distinguish', () => {
         // (Note: this is not ground truth/gold standard, I have no idea if the hashing was correct, but I assume so)
-        // (If you are comparing this to ihermann's implementation, differences in hashes stem from the usage of hashbag. I do reuse hashbags across iterations while hashing, ihermann doesnt)
+        // (If you are comparing this to iherman's implementation, differences in hashes stem from the usage of hashbag. I do reuse hashbags across iterations while hashing, iherman doesnt)
         const data = `
              _:a <p> _:b .
 				_:b <p> _:c .
