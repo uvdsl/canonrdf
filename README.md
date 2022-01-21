@@ -28,13 +28,13 @@ const { Store, Parser } = require("n3");
 
 // the graph to relabel
 const data = `
-				_:a <p> _:b .
-				_:b <p> _:c .
-				_:c <p> _:a .
-				_:x <p> _:y .
-				_:y <p> _:z .
-				_:z <p> _:x .
-				<u> <p> <v> .
+		_:a <p> _:b .
+		_:b <p> _:c .
+		_:c <p> _:a .
+		_:x <p> _:y .
+		_:y <p> _:z .
+		_:z <p> _:x .
+		<u> <p> <v> .
 `
 const store = new Store();
 const parser = new Parser();
