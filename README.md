@@ -11,11 +11,11 @@ Since I did not feel comfortable messing around in code I do not understand, I e
 
 For the sake of interoperability, I would also like to
 make this implemenation have the same output as the original Java implementation on the same inputs.
-However, there are alot of open questions regarding an exact implementation, e.g. ordering of graphs, carry-over of hash bags, hashing tuples, etc.
+However, there are alot of open questions regarding an exact implementation, e.g. ordering of graphs, carry-over of hash bags, hashing tuples, etc. (see [here](./spec.md))
 
 ---
 ### Installation
-This package relies on [n3](https://github.com/rdfjs/N3.js) for handling RDF, currently using version `1.12.2`.
+This package relies on [N3.js](https://github.com/rdfjs/N3.js) for handling RDF, currently using version `1.12.2`.
 ```
 npm install n3@1.12.2 --save
 npm install canonrdf --save
