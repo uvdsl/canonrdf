@@ -1,50 +1,73 @@
 # Open Questions for Specification
 _Note_:  
 iherman's [implementation](https://github.com/iherman/canonical_rdf) of `hashBNodes(.)` and my implementation of that function are equivalent (to my testing). However, we interpret the ordering of graphs differently (here: `isLowerOrderThan(.)`).  
-The original [implementation]() in Java by aidhog is not equivalent to any of the aforementioned implementations (afaik), as the underlying RDF libraries handle the values of terms differently (see question 3).
+The original [implementation](https://github.com/aidhog/blabel) in Java by aidhog is not equivalent to any of the aforementioned implementations (afaik), as the underlying RDF libraries handle the values of terms differently (see question 3).  
+Also note the comments of iherman in his [repo](https://github.com/iherman/canonical_rdf) regarding open questions for specification.
 
 ---
-### (1) Which hashing algorithm is chosen? ("a perfect one")
+### (1) Which hashing algorithm is chosen?
+In the  [paper](https://aidanhogan.com/docs/rdf-canonicalisation.pdf), it is just stated that a "perfect hashing scheme" (page 16) should be chosen.
 ```js
+// my implementation
 const HASH_ALGO = 'md5';
 ```
+For my implementation, I chose md5 as it is used in aidhog's [code](https://github.com/aidhog/blabel/blob/5dc9b3a8917e93cb5a5e1fb9583e2372b0a70c4e/src/main/java/cl/uchile/dcc/blabel/label/GraphLabelling.java#L194).
+iherman chose md4 in his [code](https://github.com/iherman/canonical_rdf/blob/master/lib/Hash.js) but notes that his choice is just for simplicity and that the choice should be discussed.
 
 ---
 
 ### (2) What is the exact value of the constants?
+The exact values of the constants are not defined in the [paper](https://aidanhogan.com/docs/rdf-canonicalisation.pdf). 
+There, the symbols are simply used as distinguishing values.
 ```js
+// my implementation
 const INITIAL_BN_HASH = Buffer.alloc(16); 
 const EDGE_OUT = Buffer.from('+'); 
 const EDGE_IN = Buffer.from('-'); 
 const MARKER = Buffer.from('@'); 
 ```
+My implementation is equivalent to iherman's.
 
 ---
 
 ### (3) How exactly are terms handled for hashing?  
 Does the string value of a __URI__ include the starting and closing brackets `< ... >` or is it only the inner value that is used for hashing? For example, [N3.js](https://github.com/rdfjs/N3.js) excludes the brackets, whereas [nxparser](https://github.com/nxparser/nxparser) (Java) includes the brackets.  
 ```js
-const uri = (decide) ? '<http://example.org>' : 'http://example.org';
+// choose
+const uri = '<http://example.org>'  ; // Option A
+// or
+const uri = 'http://example.org'    ; // Option B
 ```
 Similarly, for the string value of __Blank Nodes__, are the starting `_:` included?  
 ```js
-const bn  = (decide) ? '_:bn' : 'bn';
+// choose
+const bn  = '_:bn'  ; // Option A
+// or
+const bn  = 'bn'    ; // Option B
 ```
-And for __Literals__, [nxparser](https://github.com/nxparser/nxparser) (Java) always includes the (inferred) datatype in the value of the term, whereas [N3.js](https://github.com/rdfjs/N3.js) does so only if the datatype was provided.
+And for __Literals__, [nxparser](https://github.com/nxparser/nxparser) (Java) always includes the `(inferred) datatype` in the value of the term, whereas [N3.js](https://github.com/rdfjs/N3.js) does so only if the datatype was provided.
 ```js
-const l_0 = (decide) ? '"test"^^xsd:string' : '"test"';
-const l_1 = (decide) ? '"0"^^xsd:integer' : '0';
+// choose 
+const str   = '"test"^^xsd:string'  ; // Option A
+const num   = '"0"^^xsd:integer'    ; // Option A
+// or
+const str   = '"test"'              ; // Option B
+const num   = '0'                   ; // Option B
 ```
-There may be other differences between implementations that I am not aware of.
+_Note:_ There may be other differences between implementations that I am not aware of.
 
 ---
 
 ### (4) How exaclty is a `hashTuple` defined? (concatenation of inputs?)
 ```js
+// my implementation
 const hashTuple = (...data: Buffer[]) => {
     return hash(Buffer.concat(data));
 }
 ```
+My implementation is an adaptation from iherman.
+(Quite handy syntax in the signature, I was not aware such things were allowed.)
+Also, iherman [notes](https://github.com/iherman/canonical_rdf/blob/3cab75f65e54af8b7001f4c42a4ff9ba9168811a/lib/Hash.js#L116) that this function would need to be well-defined.
 
 ---
 
