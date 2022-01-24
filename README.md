@@ -21,7 +21,7 @@ npm install n3@1.12.2 --save
 npm install canonrdf --save
 ```
 ---
-### Usage
+### Usage Example
 ```js
 const { isoCanonicalise } = require("canonrdf");
 const { Store, Parser } = require("n3");
@@ -48,9 +48,11 @@ const relabeled = isoCanonicalise(store);
 
 // print the new labels
 console.log(relabeled._ids);
-
 ```
-
+This usage example is using Javascript because it is convinient to access private property of `store._ids` to show that the graph has been relabeld.
+When using Typescript that line will make your compiler cry, that is because `N3.js` does not an easy way to access the terms in the graph.
+In Typescript, getting the terms is just cumberson and does not add to the example
+(you can have a look at the relabeld terms within the quads from a `store.getQuads(...)` call).
 
 ---
 ### References
