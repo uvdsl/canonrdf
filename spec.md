@@ -1,4 +1,4 @@
-# Open Questions for Specification
+# Underspecified Points around RDF Hashing
 _Note_:  
 iherman's [implementation](https://github.com/iherman/canonical_rdf) of `hashBNodes(.)` and my implementation of that function are equivalent (to my testing). However, we interpret the ordering of graphs differently (here: `isLowerOrderThan(.)`).  
 The original [implementation](https://github.com/aidhog/blabel) in Java by aidhog is not equivalent to any of the aforementioned implementations (afaik), as the underlying RDF libraries handle the values of terms differently (see question 3).  
@@ -45,7 +45,7 @@ const bn  = '_:bn'  ; // Option A
 // or
 const bn  = 'bn'    ; // Option B
 ```
-And for __Literals__, [nxparser](https://github.com/nxparser/nxparser) (Java) always includes the `(inferred) datatype` in the value of the term, whereas [N3.js](https://github.com/rdfjs/N3.js) does so only if the datatype was provided.
+And for __Literals__...
 ```js
 // choose 
 const str   = '"test"^^xsd:string'  ; // Option A
@@ -55,6 +55,7 @@ const str   = '"test"'              ; // Option B
 const num   = '0'                   ; // Option B
 ```
 _Note:_ There may be other differences between implementations that I am not aware of.
+Some answers may seem obvious :)
 
 ---
 
